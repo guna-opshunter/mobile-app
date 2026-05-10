@@ -1,0 +1,40 @@
+{
+    "cli": {
+        "version": ">= 12.0.0",
+        "appVersionSource": "local"
+    },
+    "build": {
+        "development": {
+            "developmentClient": true,
+            "distribution": "internal",
+            "android": {
+                "gradleCommand": ":app:assembleDebug"
+            }
+        },
+        "preview": {
+            "distribution": "internal",
+            "android": {
+                "buildType": "apk"
+            }
+        },
+        "production": {
+            "android": {
+                "buildType": "app-bundle"
+            },
+            "autoIncrement": true,
+            "env": {
+                "APP_ENV": "production"
+            }
+        }
+    },
+    "submit": {
+        "production": {
+            "android": {
+                "serviceAccountKeyPath": "./google-services.json",
+                "track": "production",
+                "releaseStatus": "completed",
+                "changesNotSentForReview": false
+            }
+        }
+    }
+}
