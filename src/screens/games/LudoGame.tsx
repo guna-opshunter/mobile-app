@@ -166,6 +166,24 @@ export default function LudoGame({ navigation, route }: any) {
         }).start();
     }, [currentPlayer]);
 
+    // Background Gradients Opacities
+    const bgOpacities = useRef([
+        new Animated.Value(currentPlayer === 0 ? 1 : 0),
+        new Animated.Value(currentPlayer === 1 ? 1 : 0),
+        new Animated.Value(currentPlayer === 2 ? 1 : 0),
+        new Animated.Value(currentPlayer === 3 ? 1 : 0),
+    ]).current;
+
+    useEffect(() => {
+        bgOpacities.forEach((anim, index) => {
+            Animated.timing(anim, {
+                toValue: currentPlayer === index ? 1 : 0,
+                duration: 600,
+                useNativeDriver: false,
+            }).start();
+        });
+    }, [currentPlayer]);
+
     useEffect(() => {
         const newPlayers: PlayerConfig[] = [];
         for (let i = 0; i < 4; i++) {
@@ -1079,6 +1097,12 @@ export default function LudoGame({ navigation, route }: any) {
 
     return (
         <View style={[styles.container, { backgroundColor: containerBg }]}>
+            {/* Dynamic Background Gradients */}
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[0], backgroundImage: `linear-gradient(to top right, ${COLORS[0]}40, transparent 80%)` } as any]} />
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[1], backgroundImage: `linear-gradient(to bottom right, ${COLORS[1]}40, transparent 80%)` } as any]} />
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[2], backgroundImage: `linear-gradient(to bottom left, ${COLORS[2]}40, transparent 80%)` } as any]} />
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[3], backgroundImage: `linear-gradient(to top left, ${COLORS[3]}40, transparent 80%)` } as any]} />
+
             {/* Turn Indicator */}
             <View style={[styles.turnBadge, { backgroundColor: COLORS[currentPlayer] }]}>
                 <Text style={styles.turnText}>

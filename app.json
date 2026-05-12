@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "NexaPlay — Games & Smart Tools for Students",
-    "slug": "nexaplay-games-smart-tools",
+    "name": "NexaPlay",
+    "slug": "smart-tools-calc-games",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,13 +24,12 @@
       "bundleIdentifier": "com.nexaplay.gamestools"
     },
     "android": {
-      "package": "com.smarttools.calcgames",
-      "versionCode": 1,
+      "package": "com.nexaplay.gamestools",
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#3B3B78"
       },
-      "edgeToEdgeEnabled": true,
       "permissions": [],
       "softwareKeyboardLayoutMode": "pan",
       "blockedPermissions": [
