@@ -18,22 +18,30 @@ const COLOR_DARK = ['#DC2626', '#16A34A', '#CA8A04', '#2563EB'];
 // Common path: 52 cells around the board (counter-clockwise, traditional Indian Ludo)
 // Starting from Red's entry (bottom-left area)
 const COMMON_PATH: [number, number][] = [
-    // Red start zone (bottom-left) → going LEFT along bottom arm
-    [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0],         // Left arm bottom row → LEFT
-    [7, 0], [6, 0],                                           // Left edge → UP
-    [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],                 // Left arm top row → RIGHT
-    // Green zone (top-left) → going UP along top arm
-    [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6],         // Top arm left col → UP
-    [0, 7], [0, 8],                                           // Top edge → RIGHT
-    [1, 8], [2, 8], [3, 8], [4, 8], [5, 8],                 // Top arm right col → DOWN
-    // Yellow zone (top-right) → going RIGHT along right arm
-    [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14],    // Right arm top row → RIGHT
-    [7, 14], [8, 14],                                         // Right edge → DOWN
-    [8, 13], [8, 12], [8, 11], [8, 10], [8, 9],             // Right arm bottom row → LEFT
-    // Blue zone (bottom-right) → going DOWN along bottom arm
-    [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8],    // Bottom arm right col → DOWN
-    [14, 7], [14, 6],                                         // Bottom edge → LEFT
-    [13, 6], [12, 6], [11, 6], [10, 6], [9, 6],             // Bottom arm left col → UP
+    // Red start zone (Left arm top row) → going RIGHT
+    [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
+    // Top arm left col → UP
+    [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6],
+    // Top edge → RIGHT
+    [0, 7], [0, 8],
+    // Top arm right col (Green start) → DOWN
+    [1, 8], [2, 8], [3, 8], [4, 8], [5, 8],
+    // Right arm top row → RIGHT
+    [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14],
+    // Right edge → DOWN
+    [7, 14], [8, 14],
+    // Right arm bottom row (Yellow start) → LEFT
+    [8, 13], [8, 12], [8, 11], [8, 10], [8, 9],
+    // Bottom arm right col → DOWN
+    [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8],
+    // Bottom edge → LEFT
+    [14, 7], [14, 6],
+    // Bottom arm left col (Blue start) → UP
+    [13, 6], [12, 6], [11, 6], [10, 6], [9, 6],
+    // Left arm bottom row → LEFT
+    [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0],
+    // Left edge → UP
+    [7, 0], [6, 0],
 ];
 
 // Player start indices on COMMON_PATH:
@@ -453,12 +461,12 @@ export default function LudoGame({ navigation, route }: any) {
             if (newPosition < 51) { // Only on common path, not home lane (51-55)
                 const landedCoords = getTokenBoardPosition(playerIndex, newPosition);
                 if (landedCoords) {
-                    // Safe spots where capture is not allowed (traditional: 4 star cells only)
+                    // Safe spots where capture is not allowed (4 star cells)
                     const safeCells: [number, number][] = [
-                        [6, 2], [2, 8], [8, 12], [12, 6]
+                        [8, 2], [2, 6], [6, 12], [12, 8]
                     ];
                     // Also each player's start cell is safe
-                    const startCells: [number, number][] = [[8, 5], [5, 6], [6, 9], [9, 8]];
+                    const startCells: [number, number][] = [[6, 1], [1, 8], [8, 13], [13, 6]];
                     const allSafe = [...safeCells, ...startCells];
                     const isOnSafe = allSafe.some(s => s[0] === landedCoords[0] && s[1] === landedCoords[1]);
 
@@ -736,21 +744,21 @@ export default function LudoGame({ navigation, route }: any) {
         }
 
         // Start positions (where tokens enter the board) — colored with player's color
-        if (row === 8 && col === 5) cellColor = COLORS[0]; // Red start (bottom-left)
-        if (row === 5 && col === 6) cellColor = COLORS[1]; // Green start (top-left)
-        if (row === 6 && col === 9) cellColor = COLORS[2]; // Yellow start (top-right)
-        if (row === 9 && col === 8) cellColor = COLORS[3]; // Blue start (bottom-right)
+        if (row === 6 && col === 1) cellColor = COLORS[0]; // Red start (left arm)
+        if (row === 1 && col === 8) cellColor = COLORS[1]; // Green start (top arm)
+        if (row === 8 && col === 13) cellColor = COLORS[2]; // Yellow start (right arm)
+        if (row === 13 && col === 6) cellColor = COLORS[3]; // Blue start (bottom arm)
 
-        // Safe star spots — colored with the respective player's color (traditional Indian Ludo)
-        // Each star is in the arm leading away from a player's home base
-        if (row === 6 && col === 2) cellColor = COLOR_LIGHT[0];  // Red's safe star (left arm)
-        if (row === 2 && col === 8) cellColor = COLOR_LIGHT[1];  // Green's safe star (top arm)
-        if (row === 8 && col === 12) cellColor = COLOR_LIGHT[2]; // Yellow's safe star (right arm)
-        if (row === 12 && col === 6) cellColor = COLOR_LIGHT[3]; // Blue's safe star (bottom arm)
+        // Safe star spots — colored with the respective player's color
+        if (row === 8 && col === 2) cellColor = COLOR_LIGHT[0];  // Red's safe star
+        if (row === 2 && col === 6) cellColor = COLOR_LIGHT[1];  // Green's safe star
+        if (row === 6 && col === 12) cellColor = COLOR_LIGHT[2]; // Yellow's safe star
+        if (row === 12 && col === 8) cellColor = COLOR_LIGHT[3]; // Blue's safe star
 
-        // Safe spots (traditional: only 4 star cells + start cells are safe)
+        // Safe spots (4 star cells + 4 start cells are safe)
         const safeSpots = [
-            [6, 2], [2, 8], [8, 12], [12, 6]
+            [8, 2], [2, 6], [6, 12], [12, 8],
+            [6, 1], [1, 8], [8, 13], [13, 6]
         ];
         const isSafe = safeSpots.some(s => s[0] === row && s[1] === col);
 
