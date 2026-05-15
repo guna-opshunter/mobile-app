@@ -228,13 +228,13 @@ const styles = StyleSheet.create({
         borderRadius: 20, padding: 18, marginBottom: 20,
         shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
     },
-    modeRow: { flexDirection: 'row', gap: 10 },
+    modeRow: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: -4 },
     modeButton: {
-        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 14, borderRadius: 14, gap: 6,
+        flex: 1, alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 12, borderRadius: 14, marginHorizontal: 4,
     },
-    modeIcon: { fontSize: 18 },
-    modeText: { fontSize: 13, fontWeight: '700' },
+    modeIcon: { fontSize: 24, marginBottom: 6 },
+    modeText: { fontSize: 12, fontWeight: '700' },
     card: {
         borderRadius: 20, padding: 22, elevation: 4,
         shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12,

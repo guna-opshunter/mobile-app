@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, ScrollView
 import { useTheme } from '../../theme';
 import { useRecords } from '../../context/RecordsContext';
 import { useAchievements } from '../../context/AchievementsContext';
+import GameMenuModal from '../../components/GameMenuModal';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 24, height * 0.48); // ~70% feel, fits with dice panels
@@ -45,15 +47,16 @@ const COMMON_PATH: [number, number][] = [
 ];
 
 // Player start indices on COMMON_PATH:
-// Red=0 (bottom-left), Green=13 (top-left), Yellow=26 (top-right), Blue=39 (bottom-right)
-const PLAYER_START_INDEX = [0, 13, 26, 39];
+// Red(0) = Bottom-Left (idx 39), Green(1) = Top-Left (idx 0)
+// Yellow(2) = Top-Right (idx 13), Blue(3) = Bottom-Right (idx 26)
+const PLAYER_START_INDEX = [39, 0, 13, 26];
 
 // Home lanes (5 cells each, leading to center)
 const HOME_LANES: [number, number][][] = [
-    [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]],       // Red (from left)
-    [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]],       // Green (from top)
-    [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]],   // Yellow (from right)
-    [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]],   // Blue (from bottom)
+    [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]],   // Player 0: Red (Bottom arm)
+    [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]],       // Player 1: Green (Left arm)
+    [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]],       // Player 2: Yellow (Top arm)
+    [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]],   // Player 3: Blue (Right arm)
 ];
 
 // Build full path for each player (positions 0-55 = board cells, 56 = finished/home)
@@ -126,6 +129,7 @@ export default function LudoGame({ navigation, route }: any) {
     const [gameSaved, setGameSaved] = useState(false);
     const [movableTokens, setMovableTokens] = useState<{ player: number, token: number }[]>([]);
     const [message, setMessage] = useState<string | null>(null);
+    const [menuVisible, setMenuVisible] = useState(false);
     const [consecutive6s, setConsecutive6s] = useState(0);
     const lastMovedTokenRef = useRef<{ player: number; token: number; prevPos: number } | null>(null);
     const tokensRef = useRef(tokens);
@@ -466,7 +470,7 @@ export default function LudoGame({ navigation, route }: any) {
                         [8, 2], [2, 6], [6, 12], [12, 8]
                     ];
                     // Also each player's start cell is safe
-                    const startCells: [number, number][] = [[6, 1], [1, 8], [8, 13], [13, 6]];
+                    const startCells: [number, number][] = [[13, 6], [6, 1], [1, 8], [8, 13]];
                     const allSafe = [...safeCells, ...startCells];
                     const isOnSafe = allSafe.some(s => s[0] === landedCoords[0] && s[1] === landedCoords[1]);
 
@@ -726,41 +730,45 @@ export default function LudoGame({ navigation, route }: any) {
         let borderColor = '#CBD5E1';
         let isPath = true;
 
-        // Red home lane (left middle — from bottom-left)
-        if (col >= 1 && col <= 5 && row === 7) {
+        // Red home lane (bottom arm)
+        if (row >= 9 && row <= 13 && col === 7) {
             cellColor = COLOR_LIGHT[0];
         }
-        // Green home lane (top middle — from top-left)
-        if (row >= 1 && row <= 5 && col === 7) {
+        // Green home lane (left arm)
+        if (col >= 1 && col <= 5 && row === 7) {
             cellColor = COLOR_LIGHT[1];
         }
-        // Yellow home lane (right middle — from top-right)
-        if (col >= 9 && col <= 13 && row === 7) {
+        // Yellow home lane (top arm)
+        if (row >= 1 && row <= 5 && col === 7) {
             cellColor = COLOR_LIGHT[2];
         }
-        // Blue home lane (bottom middle — from bottom-right)
-        if (row >= 9 && row <= 13 && col === 7) {
+        // Blue home lane (right arm)
+        if (col >= 9 && col <= 13 && row === 7) {
             cellColor = COLOR_LIGHT[3];
         }
 
         // Start positions (where tokens enter the board) — colored with player's color
-        if (row === 6 && col === 1) cellColor = COLORS[0]; // Red start (left arm)
-        if (row === 1 && col === 8) cellColor = COLORS[1]; // Green start (top arm)
-        if (row === 8 && col === 13) cellColor = COLORS[2]; // Yellow start (right arm)
-        if (row === 13 && col === 6) cellColor = COLORS[3]; // Blue start (bottom arm)
+        if (row === 13 && col === 6) cellColor = COLORS[0]; // Red start (bottom arm)
+        if (row === 6 && col === 1) cellColor = COLORS[1]; // Green start (left arm)
+        if (row === 1 && col === 8) cellColor = COLORS[2]; // Yellow start (top arm)
+        if (row === 8 && col === 13) cellColor = COLORS[3]; // Blue start (right arm)
 
         // Safe star spots — colored with the respective player's color
-        if (row === 8 && col === 2) cellColor = COLOR_LIGHT[0];  // Red's safe star
-        if (row === 2 && col === 6) cellColor = COLOR_LIGHT[1];  // Green's safe star
-        if (row === 6 && col === 12) cellColor = COLOR_LIGHT[2]; // Yellow's safe star
-        if (row === 12 && col === 8) cellColor = COLOR_LIGHT[3]; // Blue's safe star
+        if (row === 12 && col === 8) cellColor = COLOR_LIGHT[0]; // Red's safe star (bottom arm)
+        if (row === 8 && col === 2) cellColor = COLOR_LIGHT[1];  // Green's safe star (left arm)
+        if (row === 2 && col === 6) cellColor = COLOR_LIGHT[2];  // Yellow's safe star (top arm)
+        if (row === 6 && col === 12) cellColor = COLOR_LIGHT[3]; // Blue's safe star (right arm)
 
-        // Safe spots (4 star cells + 4 start cells are safe)
+        // Safe spots (4 star cells + 4 start cells are safe in logic)
         const safeSpots = [
             [8, 2], [2, 6], [6, 12], [12, 8],
-            [6, 1], [1, 8], [8, 13], [13, 6]
+            [13, 6], [6, 1], [1, 8], [8, 13]
         ];
-        const isSafe = safeSpots.some(s => s[0] === row && s[1] === col);
+        // Only draw the star icon on the 4 actual star cells
+        const starSpots = [
+            [8, 2], [2, 6], [6, 12], [12, 8]
+        ];
+        const hasStarIcon = starSpots.some(s => s[0] === row && s[1] === col);
 
         return (
             <View
@@ -775,7 +783,7 @@ export default function LudoGame({ navigation, route }: any) {
                     }
                 ]}
             >
-                {isSafe && <Text style={styles.safeStar}>★</Text>}
+                {hasStarIcon && <Text style={styles.safeStar}>★</Text>}
             </View>
         );
     };
@@ -784,14 +792,14 @@ export default function LudoGame({ navigation, route }: any) {
     const renderCenter = () => {
         return (
             <View style={styles.centerContainer}>
-                {/* Red triangle (pointing right) */}
-                <View style={[styles.centerTriangle, styles.triangleRed]} />
-                {/* Blue triangle (pointing down) */}
-                <View style={[styles.centerTriangle, styles.triangleBlue]} />
-                {/* Green triangle (pointing up) */}
-                <View style={[styles.centerTriangle, styles.triangleGreen]} />
-                {/* Yellow triangle (pointing left) */}
-                <View style={[styles.centerTriangle, styles.triangleYellow]} />
+                {/* Red triangle (pointing UP, from bottom arm) */}
+                <View style={[styles.centerTriangle, styles.triangleBottom]} />
+                {/* Green triangle (pointing RIGHT, from left arm) */}
+                <View style={[styles.centerTriangle, styles.triangleLeft]} />
+                {/* Yellow triangle (pointing DOWN, from top arm) */}
+                <View style={[styles.centerTriangle, styles.triangleTop]} />
+                {/* Blue triangle (pointing LEFT, from right arm) */}
+                <View style={[styles.centerTriangle, styles.triangleRight]} />
             </View>
         );
     };
@@ -1106,10 +1114,18 @@ export default function LudoGame({ navigation, route }: any) {
     return (
         <View style={[styles.container, { backgroundColor: containerBg }]}>
             {/* Dynamic Background Gradients */}
-            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[0], backgroundImage: `linear-gradient(to top right, ${COLORS[0]}40, transparent 80%)` } as any]} />
-            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[1], backgroundImage: `linear-gradient(to bottom right, ${COLORS[1]}40, transparent 80%)` } as any]} />
-            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[2], backgroundImage: `linear-gradient(to bottom left, ${COLORS[2]}40, transparent 80%)` } as any]} />
-            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[3], backgroundImage: `linear-gradient(to top left, ${COLORS[3]}40, transparent 80%)` } as any]} />
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[0] }]}>
+                <LinearGradient colors={[`${COLORS[0]}40`, `${COLORS[0]}00`]} locations={[0, 0.8]} start={{x: 0, y: 1}} end={{x: 1, y: 0}} style={StyleSheet.absoluteFill} />
+            </Animated.View>
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[1] }]}>
+                <LinearGradient colors={[`${COLORS[1]}40`, `${COLORS[1]}00`]} locations={[0, 0.8]} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={StyleSheet.absoluteFill} />
+            </Animated.View>
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[2] }]}>
+                <LinearGradient colors={[`${COLORS[2]}40`, `${COLORS[2]}00`]} locations={[0, 0.8]} start={{x: 1, y: 0}} end={{x: 0, y: 1}} style={StyleSheet.absoluteFill} />
+            </Animated.View>
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[3] }]}>
+                <LinearGradient colors={[`${COLORS[3]}40`, `${COLORS[3]}00`]} locations={[0, 0.8]} start={{x: 1, y: 1}} end={{x: 0, y: 0}} style={StyleSheet.absoluteFill} />
+            </Animated.View>
 
             {/* Turn Indicator */}
             <View style={[styles.turnBadge, { backgroundColor: COLORS[currentPlayer] }]}>
@@ -1167,41 +1183,30 @@ export default function LudoGame({ navigation, route }: any) {
                 )}
             </View>
 
-            <TouchableOpacity style={styles.settingsLink} onPress={() => {
-                Alert.alert(
-                    '⚙️ Game Menu',
-                    'What would you like to do?',
-                    [
-                        {
-                            text: 'Save & Quit',
-                            onPress: () => {
-                                // Save full game state for continue later
-                                saveLudoGame({
-                                    tokens: tokens.map(p => p.map(t => ({ ...t }))),
-                                    currentPlayer,
-                                    players: players.map(p => ({ ...p })),
-                                    playMode,
-                                    difficulty,
-                                    playerCount: players.filter(p => p.active).length,
-                                });
-                                Alert.alert('✓ Saved', 'Game saved! Continue from Records.');
-                                resetGame();
-                            },
-                        },
-                        {
-                            text: 'Quit',
-                            style: 'destructive',
-                            onPress: () => resetGame(),
-                        },
-                        {
-                            text: 'Cancel',
-                            style: 'cancel',
-                        },
-                    ]
-                );
-            }}>
+            <TouchableOpacity style={styles.settingsLink} onPress={() => setMenuVisible(true)}>
                 <Text style={[styles.settingsLinkText, { color: subtitleColor }]}>⚙️ Menu</Text>
             </TouchableOpacity>
+            
+            <GameMenuModal 
+                visible={menuVisible} 
+                onClose={() => setMenuVisible(false)} 
+                onSaveAndQuit={() => {
+                    saveLudoGame({
+                        tokens: tokens.map(p => p.map(t => ({ ...t }))),
+                        currentPlayer,
+                        players: players.map(p => ({ ...p })),
+                        playMode,
+                        difficulty,
+                        playerCount: players.filter(p => p.active).length,
+                    });
+                    resetGame();
+                    setMenuVisible(false);
+                }} 
+                onQuit={() => {
+                    resetGame();
+                    setMenuVisible(false);
+                }} 
+            />
         </View>
     );
 }
@@ -1541,30 +1546,9 @@ const styles = StyleSheet.create({
         width: 0,
         height: 0,
     },
-    // Center triangles: Red=left (bottom-left player), Green=top (top-left player), Yellow=right (top-right player), Blue=bottom (bottom-right player)
-    triangleRed: {
-        left: 0,
-        top: 0,
-        borderTopWidth: CELL_SIZE * 1.5,
-        borderBottomWidth: CELL_SIZE * 1.5,
-        borderRightWidth: CELL_SIZE * 1.5,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-        borderRightColor: COLORS[0],
-    },
-    triangleBlue: {
-        right: 0,
-        top: 0,
-        borderLeftWidth: CELL_SIZE * 1.5,
-        borderRightWidth: CELL_SIZE * 1.5,
-        borderBottomWidth: CELL_SIZE * 1.5,
-        borderLeftColor: 'transparent',
-        borderRightColor: 'transparent',
-        borderBottomColor: COLORS[1],
-    },
-    triangleGreen: {
-        left: 0,
-        bottom: 0,
+    // Center triangles
+    triangleTop: { // Yellow (points DOWN)
+        top: 0, left: 0,
         borderLeftWidth: CELL_SIZE * 1.5,
         borderRightWidth: CELL_SIZE * 1.5,
         borderTopWidth: CELL_SIZE * 1.5,
@@ -1572,15 +1556,32 @@ const styles = StyleSheet.create({
         borderRightColor: 'transparent',
         borderTopColor: COLORS[2],
     },
-    triangleYellow: {
-        right: 0,
-        bottom: 0,
+    triangleBottom: { // Red (points UP)
+        bottom: 0, left: 0,
+        borderLeftWidth: CELL_SIZE * 1.5,
+        borderRightWidth: CELL_SIZE * 1.5,
+        borderBottomWidth: CELL_SIZE * 1.5,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderBottomColor: COLORS[0],
+    },
+    triangleLeft: { // Green (points RIGHT)
+        left: 0, top: 0,
         borderTopWidth: CELL_SIZE * 1.5,
         borderBottomWidth: CELL_SIZE * 1.5,
         borderLeftWidth: CELL_SIZE * 1.5,
         borderTopColor: 'transparent',
         borderBottomColor: 'transparent',
-        borderLeftColor: COLORS[3],
+        borderLeftColor: COLORS[1],
+    },
+    triangleRight: { // Blue (points LEFT)
+        right: 0, top: 0,
+        borderTopWidth: CELL_SIZE * 1.5,
+        borderBottomWidth: CELL_SIZE * 1.5,
+        borderRightWidth: CELL_SIZE * 1.5,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
+        borderRightColor: COLORS[3],
     },
     // Simple Circle Token (Home)
     tokenContainer: {

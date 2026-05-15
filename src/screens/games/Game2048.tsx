@@ -4,6 +4,7 @@ import {
     PanResponder, Animated, useWindowDimensions
 } from 'react-native';
 import { useTheme, COLORS } from '../../theme';
+import GameMenuModal from '../../components/GameMenuModal';
 
 const BOARD_SIZE = 4;
 const TILE_MARGIN = 6;
@@ -177,6 +178,7 @@ export default function Game2048({ navigation }: any) {
     const [gameOver, setGameOver] = useState(false);
     const [won, setWon] = useState(false);
     const [keepPlaying, setKeepPlaying] = useState(false);
+    const [menuVisible, setMenuVisible] = useState(false);
 
     const textColor = isDarkMode ? '#F8FAFC' : '#0F172A';
     const subColor = isDarkMode ? '#94A3B8' : '#64748B';
@@ -251,13 +253,7 @@ export default function Game2048({ navigation }: any) {
 
     return (
         <View style={[styles.container, { backgroundColor: containerBg }]}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => {
-                Alert.alert('⚙️ Game Menu', 'What would you like to do?', [
-                    { text: 'Save & Quit', onPress: () => navigation.goBack() },
-                    { text: 'Quit', style: 'destructive', onPress: () => navigation.goBack() },
-                    { text: 'Cancel', style: 'cancel' },
-                ]);
-            }}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => setMenuVisible(true)}>
                 <View style={[styles.backBtnBg, { backgroundColor: cardBg }]}>
                     <Text style={[styles.backBtnText, { color: textColor }]}>Menu</Text>
                 </View>
@@ -372,6 +368,13 @@ export default function Game2048({ navigation }: any) {
                     </View>
                 </View>
             )}
+
+            <GameMenuModal 
+                visible={menuVisible} 
+                onClose={() => setMenuVisible(false)} 
+                onSaveAndQuit={() => navigation.goBack()} 
+                onQuit={() => navigation.goBack()} 
+            />
         </View>
     );
 }

@@ -28,21 +28,18 @@ const games = [
     { name: 'Memory', icon: '🃏', route: 'MemoryMatch', gradient: ['#14B8A6', '#2DD4BF'] },
     { name: 'Sudoku', icon: '🔢', route: 'Sudoku', gradient: ['#0EA5E9', '#38BDF8'] },
     { name: '2048', icon: '🧩', route: 'Game2048', gradient: ['#EDC22E', '#F5D456'] },
-];
-
-const boardGames = [
     { name: 'Ludo', icon: '🎲', route: 'Ludo', gradient: ['#EF4444', '#F87171'] },
     { name: 'Chess', icon: '♟️', route: 'Chess', gradient: ['#6B7280', '#9CA3AF'] },
+    { name: 'Snake & Ladder', icon: '🪜', route: 'SnakeLadder', gradient: ['#10B981', '#34D399'] },
     { name: 'Tic Tac Toe', icon: '❌', route: 'TicTacToe', gradient: ['#8B5CF6', '#A78BFA'] },
     { name: 'Neon Snake', icon: '🐍', route: 'Snake', gradient: ['#38BDF8', '#0284C7'] },
 ];
 
-const allItems = [...calculators, ...games, ...boardGames];
+const allItems = [...calculators, ...games];
 
 export default function HomeScreen({ navigation }: any) {
     const { userName, setUserName, isDarkMode, recentlyUsed, addRecentlyUsed, favorites, toggleFavorite, isFavorite } = useTheme();
     const [showOptions, setShowOptions] = React.useState(!!userName);
-    const [boardGamesOpen, setBoardGamesOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const { width } = useWindowDimensions();
 
@@ -105,12 +102,6 @@ export default function HomeScreen({ navigation }: any) {
         if (!searchQuery.trim()) return games;
         const q = searchQuery.toLowerCase();
         return games.filter(item => item.name.toLowerCase().includes(q));
-    }, [searchQuery]);
-
-    const filteredBoardGames = useMemo(() => {
-        if (!searchQuery.trim()) return boardGames;
-        const q = searchQuery.toLowerCase();
-        return boardGames.filter(item => item.name.toLowerCase().includes(q));
     }, [searchQuery]);
 
     // Recently used items
@@ -424,32 +415,8 @@ export default function HomeScreen({ navigation }: any) {
                     </View>
                     </Animated.View>)}
 
-                    {/* Board Games Menu Button */}
-                    {filteredBoardGames.length > 0 && (
-                    <TouchableOpacity
-                        style={[styles.boardGamesBtn, { backgroundColor: theme.card }]}
-                        onPress={() => { SoundEffects.tap(); setBoardGamesOpen(true); }}
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.boardGamesBtnContent}>
-                            <View style={[styles.boardGamesIconBg, { backgroundColor: '#6366F1' + '15' }]}>
-                                <Text style={styles.boardGamesIcon}>🎮</Text>
-                            </View>
-                            <View style={styles.boardGamesBtnTextWrap}>
-                                <Text style={[styles.boardGamesBtnTitle, { color: theme.text }]}>Board Games</Text>
-                                <Text style={[styles.boardGamesBtnSub, { color: theme.textSecondary }]}>
-                                    Ludo, Chess, Tic Tac Toe, Snake
-                                </Text>
-                            </View>
-                        </View>
-                        <View style={styles.boardGamesArrow}>
-                            <Text style={{ color: theme.textSecondary, fontSize: 18 }}>›</Text>
-                        </View>
-                        <View style={[styles.cardAccent, { backgroundColor: '#6366F1' }]} />
-                    </TouchableOpacity>)}
-
                     {/* No results */}
-                    {searchQuery && filteredCalculators.length === 0 && filteredGames.length === 0 && filteredBoardGames.length === 0 && (
+                    {searchQuery && filteredCalculators.length === 0 && filteredGames.length === 0 && (
                         <View style={{ alignItems: 'center', paddingVertical: 48 }}>
                             <Text style={{ fontSize: 48, marginBottom: 12 }}>🔍</Text>
                             <Text style={[{ fontSize: 18, fontWeight: '700', color: theme.text }]}>No results found</Text>
@@ -460,49 +427,6 @@ export default function HomeScreen({ navigation }: any) {
                     <View style={styles.footerSpace} />
                 </ScrollView>
             )}
-
-            {/* Board Games Modal */}
-            <Modal
-                visible={boardGamesOpen}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setBoardGamesOpen(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setBoardGamesOpen(false)}
-                >
-                    <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-                        <Text style={[styles.modalTitle, { color: theme.text }]}>🎮 Board Games</Text>
-                        <View style={styles.modalGrid}>
-                            {boardGames.map((item) => (
-                                <TouchableOpacity
-                                    key={item.route}
-                                    style={[styles.modalGameBtn, { backgroundColor: theme.surface }]}
-                                    onPress={() => {
-                                        setBoardGamesOpen(false);
-                                        handleNavigate(item.route);
-                                    }}
-                                    activeOpacity={0.75}
-                                >
-                                    <View style={[styles.modalGameIconBg, { backgroundColor: item.gradient[0] + '20' }]}>
-                                        <Text style={styles.modalGameIcon}>{item.icon}</Text>
-                                    </View>
-                                    <Text style={[styles.modalGameName, { color: theme.text }]}>{item.name}</Text>
-                                    <View style={[styles.modalGameAccent, { backgroundColor: item.gradient[0] }]} />
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                        <TouchableOpacity
-                            style={styles.modalCloseBtn}
-                            onPress={() => setBoardGamesOpen(false)}
-                        >
-                            <Text style={styles.modalCloseBtnText}>Close</Text>
-                        </TouchableOpacity>
-                    </View>
-                </TouchableOpacity>
-            </Modal>
         </View>
     );
 }

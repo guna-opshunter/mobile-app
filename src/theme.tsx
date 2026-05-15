@@ -43,6 +43,8 @@ export interface ThemeContextType {
     favorites: string[];
     toggleFavorite: (route: string) => void;
     isFavorite: (route: string) => boolean;
+    currencyType: string;
+    setCurrencyType: (currency: string) => void;
     isLoading: boolean;
 }
 
@@ -58,6 +60,8 @@ export const ThemeContext = createContext<ThemeContextType>({
     favorites: [],
     toggleFavorite: () => { },
     isFavorite: () => false,
+    currencyType: '$',
+    setCurrencyType: () => { },
     isLoading: true,
 });
 

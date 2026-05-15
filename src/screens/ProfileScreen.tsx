@@ -5,7 +5,7 @@ import { useAchievements, ACHIEVEMENTS, Achievement } from '../context/Achieveme
 import { useRecords } from '../context/RecordsContext';
 
 export default function ProfileScreen() {
-    const { backgroundColor, setBackgroundColor, userName, setUserName, isDarkMode, setIsDarkMode } = useTheme();
+    const { backgroundColor, setBackgroundColor, userName, setUserName, isDarkMode, setIsDarkMode, currencyType, setCurrencyType } = useTheme();
     const { progress, getProgress, getUnlockedCount, getTotalCount, stats } = useAchievements();
     const { quizRecords, gameRecords, bmiRecords, birthdayRecords } = useRecords();
 
@@ -277,6 +277,36 @@ export default function ProfileScreen() {
                         </View>
                     </View>
                 )}
+
+                <View style={[styles.colorSection, { marginTop: isDarkMode ? 16 : 24, paddingTop: 16 }]}>
+                    <Text style={[styles.settingLabel, { color: theme.text, marginBottom: 12 }]}>
+                        Preferred Currency
+                    </Text>
+                    <View style={styles.currencyGrid}>
+                        {['$', '₹', '€', '£'].map((curr) => {
+                            const isSelected = currencyType === curr;
+                            return (
+                                <TouchableOpacity
+                                    key={curr}
+                                    style={[
+                                        styles.currencyBtn,
+                                        {
+                                            backgroundColor: isSelected ? COLORS.primary : theme.surface,
+                                            borderColor: isSelected ? COLORS.primary : theme.border,
+                                            borderWidth: isSelected ? 2 : 1,
+                                        }
+                                    ]}
+                                    onPress={() => setCurrencyType(curr)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={[styles.currencyText, { color: isSelected ? '#fff' : theme.textSecondary }]}>
+                                        {curr}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
             </View>
 
             {/* Share & Links */}
@@ -592,6 +622,27 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '600',
         textAlign: 'center',
+    },
+    currencyGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+    },
+    currencyBtn: {
+        width: 50,
+        height: 50,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        elevation: 1,
+    },
+    currencyText: {
+        fontSize: 20,
+        fontWeight: '700',
     },
     // Links
     linkButton: {

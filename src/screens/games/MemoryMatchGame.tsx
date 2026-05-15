@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Alert, useWindowDimensions } from 'react-native';
 import { useTheme } from '../../theme';
+import GameMenuModal from '../../components/GameMenuModal';
 
 const EMOJIS = ['🌟', '🌈', '🌻', '🦄', '🌍', '🍒', '🚀', '🎵'];
 const { width: _ignored } = Dimensions.get('window'); // Removed global execution
@@ -125,6 +126,7 @@ export default function MemoryMatchGame({ navigation }: any) {
     const [gameOver, setGameOver] = useState(false);
     const [timer, setTimer] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [menuVisible, setMenuVisible] = useState(false);
 
     const textColor = isDarkMode ? '#ffffff' : '#1a1a2e';
     const subtitleColor = isDarkMode ? '#a0a0a0' : '#8f9bb3';
@@ -261,13 +263,7 @@ export default function MemoryMatchGame({ navigation }: any) {
                         <Text style={[styles.subtitle, { color: subtitleColor }]}>Find all matching pairs!</Text>
                     </View>
                 </View>
-                <TouchableOpacity style={[styles.menuBtn, { backgroundColor: isDarkMode ? '#2eb3' : '#edeff5' }]} onPress={() => {
-                    Alert.alert('⚙️ Game Menu', 'What would you like to do?', [
-                        { text: 'Save & Quit', onPress: () => navigation.goBack() },
-                        { text: 'Quit', style: 'destructive', onPress: () => navigation.goBack() },
-                        { text: 'Cancel', style: 'cancel' },
-                    ]);
-                }}>
+                <TouchableOpacity style={[styles.menuBtn, { backgroundColor: isDarkMode ? '#2eb3' : '#edeff5' }]} onPress={() => setMenuVisible(true)}>
                     <Text style={{ fontSize: 13, color: textColor, fontWeight: '600' }}>Menu</Text>
                 </TouchableOpacity>
             </View>
@@ -310,6 +306,13 @@ export default function MemoryMatchGame({ navigation }: any) {
             <TouchableOpacity style={[styles.resetButton, { backgroundColor: isDarkMode ? '#2a2a3a' : '#edeff5' }]} onPress={restartGame}>
                 <Text style={[styles.resetButtonText, { color: textColor }]}>🔄 Reset Board</Text>
             </TouchableOpacity>
+
+            <GameMenuModal 
+                visible={menuVisible} 
+                onClose={() => setMenuVisible(false)} 
+                onSaveAndQuit={() => navigation.goBack()} 
+                onQuit={() => navigation.goBack()} 
+            />
         </View>
     );
 }

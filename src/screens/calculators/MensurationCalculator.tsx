@@ -16,6 +16,7 @@ export default function MensurationCalculator({ navigation }: any) {
     const [selectedShape, setSelectedShape] = useState('Square');
     const [inputs, setInputs] = useState<any>({});
     const [result, setResult] = useState<any>(null);
+    const [compositeList, setCompositeList] = useState<{shape: string, label: string, value: number, unit: string}[]>([]);
 
     const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
@@ -31,58 +32,73 @@ export default function MensurationCalculator({ navigation }: any) {
         if (mode === '2D') {
             if (selectedShape === 'Square') {
                 const s = vals.side;
-                calculations.push({ label: 'Area', value: (s * s).toFixed(2) + ' sq units' });
-                calculations.push({ label: 'Perimeter', value: (4 * s).toFixed(2) + ' units' });
+                calculations.push({ label: 'Area', rawValue: s * s, unit: 'sq units', value: (s * s).toFixed(2) + ' sq units' });
+                calculations.push({ label: 'Perimeter', rawValue: 4 * s, unit: 'units', value: (4 * s).toFixed(2) + ' units' });
             } else if (selectedShape === 'Rectangle') {
                 const l = vals.length;
                 const w = vals.width;
-                calculations.push({ label: 'Area', value: (l * w).toFixed(2) + ' sq units' });
-                calculations.push({ label: 'Perimeter', value: (2 * (l + w)).toFixed(2) + ' units' });
+                calculations.push({ label: 'Area', rawValue: l * w, unit: 'sq units', value: (l * w).toFixed(2) + ' sq units' });
+                calculations.push({ label: 'Perimeter', rawValue: 2 * (l + w), unit: 'units', value: (2 * (l + w)).toFixed(2) + ' units' });
             } else if (selectedShape === 'Circle') {
                 const r = vals.radius;
-                calculations.push({ label: 'Area', value: (Math.PI * r * r).toFixed(2) + ' sq units' });
-                calculations.push({ label: 'Circumference', value: (2 * Math.PI * r).toFixed(2) + ' units' });
+                calculations.push({ label: 'Area', rawValue: Math.PI * r * r, unit: 'sq units', value: (Math.PI * r * r).toFixed(2) + ' sq units' });
+                calculations.push({ label: 'Circumference', rawValue: 2 * Math.PI * r, unit: 'units', value: (2 * Math.PI * r).toFixed(2) + ' units' });
             } else if (selectedShape === 'Triangle') {
                 const b = vals.base;
                 const h = vals.height;
                 const s1 = vals.side1 || 0;
                 const s2 = vals.side2 || 0;
-                calculations.push({ label: 'Area', value: (0.5 * b * h).toFixed(2) + ' sq units' });
+                calculations.push({ label: 'Area', rawValue: 0.5 * b * h, unit: 'sq units', value: (0.5 * b * h).toFixed(2) + ' sq units' });
                 if (s1 && s2) {
-                    calculations.push({ label: 'Perimeter', value: (b + s1 + s2).toFixed(2) + ' units' });
+                    calculations.push({ label: 'Perimeter', rawValue: b + s1 + s2, unit: 'units', value: (b + s1 + s2).toFixed(2) + ' units' });
                 }
             }
         } else {
             if (selectedShape === 'Cube') {
                 const s = vals.side;
-                calculations.push({ label: 'Volume', value: (s * s * s).toFixed(2) + ' cubic units' });
-                calculations.push({ label: 'Surface Area', value: (6 * s * s).toFixed(2) + ' sq units' });
+                calculations.push({ label: 'Volume', rawValue: s * s * s, unit: 'cubic units', value: (s * s * s).toFixed(2) + ' cubic units' });
+                calculations.push({ label: 'Surface Area', rawValue: 6 * s * s, unit: 'sq units', value: (6 * s * s).toFixed(2) + ' sq units' });
             } else if (selectedShape === 'Cuboid') {
                 const l = vals.length;
                 const w = vals.width;
                 const h = vals.height;
-                calculations.push({ label: 'Volume', value: (l * w * h).toFixed(2) + ' cubic units' });
-                calculations.push({ label: 'Surface Area', value: (2 * (l * w + w * h + h * l)).toFixed(2) + ' sq units' });
+                calculations.push({ label: 'Volume', rawValue: l * w * h, unit: 'cubic units', value: (l * w * h).toFixed(2) + ' cubic units' });
+                calculations.push({ label: 'Surface Area', rawValue: 2 * (l * w + w * h + h * l), unit: 'sq units', value: (2 * (l * w + w * h + h * l)).toFixed(2) + ' sq units' });
             } else if (selectedShape === 'Sphere') {
                 const r = vals.radius;
-                calculations.push({ label: 'Volume', value: ((4 / 3) * Math.PI * Math.pow(r, 3)).toFixed(2) + ' cubic units' });
-                calculations.push({ label: 'Surface Area', value: (4 * Math.PI * r * r).toFixed(2) + ' sq units' });
+                calculations.push({ label: 'Volume', rawValue: (4 / 3) * Math.PI * Math.pow(r, 3), unit: 'cubic units', value: ((4 / 3) * Math.PI * Math.pow(r, 3)).toFixed(2) + ' cubic units' });
+                calculations.push({ label: 'Surface Area', rawValue: 4 * Math.PI * r * r, unit: 'sq units', value: (4 * Math.PI * r * r).toFixed(2) + ' sq units' });
             } else if (selectedShape === 'Cylinder') {
                 const r = vals.radius;
                 const h = vals.height;
-                calculations.push({ label: 'Volume', value: (Math.PI * r * r * h).toFixed(2) + ' cubic units' });
-                calculations.push({ label: 'Surface Area', value: (2 * Math.PI * r * (r + h)).toFixed(2) + ' sq units' });
+                calculations.push({ label: 'Volume', rawValue: Math.PI * r * r * h, unit: 'cubic units', value: (Math.PI * r * r * h).toFixed(2) + ' cubic units' });
+                calculations.push({ label: 'Surface Area', rawValue: 2 * Math.PI * r * (r + h), unit: 'sq units', value: (2 * Math.PI * r * (r + h)).toFixed(2) + ' sq units' });
             } else if (selectedShape === 'Cone') {
                 const r = vals.radius;
                 const h = vals.height;
                 const l = Math.sqrt(r * r + h * h);
-                calculations.push({ label: 'Volume', value: ((1 / 3) * Math.PI * r * r * h).toFixed(2) + ' cubic units' });
-                calculations.push({ label: 'Surface Area', value: (Math.PI * r * (r + l)).toFixed(2) + ' sq units' });
+                calculations.push({ label: 'Volume', rawValue: (1 / 3) * Math.PI * r * r * h, unit: 'cubic units', value: ((1 / 3) * Math.PI * r * r * h).toFixed(2) + ' cubic units' });
+                calculations.push({ label: 'Surface Area', rawValue: Math.PI * r * (r + l), unit: 'sq units', value: (Math.PI * r * (r + l)).toFixed(2) + ' sq units' });
             }
         }
 
         setResult(calculations);
         Keyboard.dismiss();
+    };
+
+    const addToComposite = (res: any) => {
+        setCompositeList([...compositeList, {
+            shape: selectedShape,
+            label: res.label,
+            value: res.rawValue,
+            unit: res.unit
+        }]);
+    };
+    
+    const removeFromComposite = (idx: number) => {
+        const newList = [...compositeList];
+        newList.splice(idx, 1);
+        setCompositeList(newList);
     };
 
     const renderInputs = () => {
@@ -189,11 +205,49 @@ export default function MensurationCalculator({ navigation }: any) {
             {result && (
                 <View style={styles.resultCard}>
                     {result.map((res: any, idx: number) => (
-                        <View key={idx} style={[styles.resultInner, { backgroundColor: COLORS.primary, marginBottom: 10 }]}>
-                            <Text style={styles.resultLabel}>{res.label}</Text>
-                            <Text style={styles.resultValue}>{res.value}</Text>
+                        <View key={idx} style={[styles.resultInner, { backgroundColor: COLORS.primary, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }]}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.resultLabel}>{res.label}</Text>
+                                <Text style={styles.resultValue}>{res.value}</Text>
+                            </View>
+                            <TouchableOpacity 
+                                style={styles.addToCompositeBtn}
+                                onPress={() => addToComposite(res)}
+                            >
+                                <Text style={styles.addToCompositeText}>+ Add</Text>
+                            </TouchableOpacity>
                         </View>
                     ))}
+                </View>
+            )}
+
+            {/* Composite Section */}
+            {compositeList.length > 0 && (
+                <View style={[styles.card, { backgroundColor: theme.card, marginTop: 20 }]}>
+                    <View style={styles.cardHeader}>
+                        <Text style={styles.shapeHeaderIcon}>➕</Text>
+                        <Text style={[styles.cardTitle, { color: theme.text }]}>Composite Total</Text>
+                    </View>
+                    {compositeList.map((item, idx) => (
+                        <View key={idx} style={styles.compositeItem}>
+                            <Text style={[styles.compositeItemText, {color: theme.text}]}>{item.shape} {item.label}</Text>
+                            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                                <Text style={[styles.compositeItemVal, {color: theme.text}]}>{item.value.toFixed(2)} {item.unit}</Text>
+                                <TouchableOpacity onPress={() => removeFromComposite(idx)} style={{marginLeft: 12}}>
+                                    <Text style={{color: '#EF4444', fontSize: 16}}>❌</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ))}
+                    <View style={[styles.compositeTotalRow, { borderTopColor: theme.border }]}>
+                        <Text style={[styles.compositeTotalLabel, { color: theme.text }]}>Total Sum:</Text>
+                        <Text style={[styles.compositeTotalValue, { color: COLORS.primary }]}>
+                            {compositeList.reduce((sum, item) => sum + item.value, 0).toFixed(2)} {compositeList[0]?.unit}
+                        </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setCompositeList([])} style={{marginTop: 16}}>
+                        <Text style={{color: theme.textSecondary, textAlign: 'center', fontWeight: '600'}}>Clear All</Text>
+                    </TouchableOpacity>
                 </View>
             )}
 
@@ -240,9 +294,17 @@ const styles = StyleSheet.create({
     calcButtonText: { color: 'white', fontSize: 17, fontWeight: '700', letterSpacing: 0.2 },
     resultCard: { marginTop: 20 },
     resultInner: {
-        borderRadius: 20, padding: 20, alignItems: 'center', shadowColor: COLORS.primary,
+        borderRadius: 20, padding: 20, shadowColor: COLORS.primary,
         shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
     },
     resultLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600', marginBottom: 4, letterSpacing: 0.5 },
     resultValue: { color: 'white', fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
+    addToCompositeBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+    addToCompositeText: { color: 'white', fontWeight: '800', fontSize: 14 },
+    compositeItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
+    compositeItemText: { fontSize: 15, fontWeight: '600' },
+    compositeItemVal: { fontSize: 15, fontWeight: '800', opacity: 0.8 },
+    compositeTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 16, borderTopWidth: 1 },
+    compositeTotalLabel: { fontSize: 18, fontWeight: '800' },
+    compositeTotalValue: { fontSize: 22, fontWeight: '900' },
 });

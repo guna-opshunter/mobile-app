@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, TextInput, ToastAndroid, Platform, Alert, Animated } from 'react-native';
 import { useTheme, COLORS } from '../../theme';
+import { useRecords } from '../../context/RecordsContext';
 
 export default function PasswordGenerator({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
+    const { addPasswordRecord } = useRecords();
     const [password, setPassword] = useState('');
     const [length, setLength] = useState('12');
     const [includeUpper, setIncludeUpper] = useState(true);
@@ -11,6 +13,8 @@ export default function PasswordGenerator({ navigation }: any) {
     const [includeNumbers, setIncludeNumbers] = useState(true);
     const [includeSymbols, setIncludeSymbols] = useState(true);
     const [animVal] = useState(new Animated.Value(1));
+    const [saveModalVisible, setSaveModalVisible] = useState(false);
+    const [passwordName, setPasswordName] = useState('');
 
     const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
@@ -53,6 +57,26 @@ export default function PasswordGenerator({ navigation }: any) {
             ToastAndroid.show('Password copied to clipboard!', ToastAndroid.SHORT);
         } else {
             Alert.alert('Success', 'Password copied!');
+        }
+    };
+
+    const savePassword = () => {
+        if (!password) return;
+        setSaveModalVisible(true);
+    };
+
+    const confirmSave = () => {
+        if (!passwordName.trim()) {
+            Alert.alert('Error', 'Please enter a name for the password.');
+            return;
+        }
+        addPasswordRecord({ name: passwordName, password });
+        setSaveModalVisible(false);
+        setPasswordName('');
+        if (Platform.OS === 'android') {
+            ToastAndroid.show('Password saved to records!', ToastAndroid.SHORT);
+        } else {
+            Alert.alert('Success', 'Password saved to records!');
         }
     };
 
@@ -124,6 +148,9 @@ export default function PasswordGenerator({ navigation }: any) {
                         <Text style={styles.generateBtnText}>🔄 Generate</Text>
                     </TouchableOpacity>
                 </View>
+                <TouchableOpacity style={styles.saveBtn} onPress={savePassword} activeOpacity={0.8}>
+                    <Text style={styles.saveBtnText}>💾 Save to Records</Text>
+                </TouchableOpacity>
             </Animated.View>
 
             {/* Options Card */}
@@ -188,6 +215,43 @@ export default function PasswordGenerator({ navigation }: any) {
             </View>
 
             <View style={{ height: 40 }} />
+
+            {/* Save Modal */}
+            <Modal
+                visible={saveModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setSaveModalVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setSaveModalVisible(false)}
+                >
+                    <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+                        <Text style={[styles.modalTitle, { color: theme.text }]}>Save Password</Text>
+                        <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>What is this password for?</Text>
+                        
+                        <TextInput
+                            style={[styles.modalInput, { backgroundColor: theme.surface, color: theme.text, borderColor: theme.border }]}
+                            placeholder="e.g. Gmail, Facebook, WiFi"
+                            placeholderTextColor={theme.textSecondary}
+                            value={passwordName}
+                            onChangeText={setPasswordName}
+                            autoFocus={true}
+                        />
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setSaveModalVisible(false)}>
+                                <Text style={[styles.modalCancelText, { color: theme.textSecondary }]}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalSaveBtn} onPress={confirmSave}>
+                                <Text style={styles.modalSaveText}>Save</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </ScrollView>
     );
 }
@@ -356,5 +420,84 @@ const styles = StyleSheet.create({
     optionLabel: {
         fontSize: 16,
         fontWeight: '600',
+    },
+    saveBtn: {
+        backgroundColor: '#10B981',
+        paddingVertical: 14,
+        borderRadius: 14,
+        alignItems: 'center',
+        marginTop: 12,
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    saveBtnText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        width: '100%',
+        maxWidth: 400,
+        borderRadius: 24,
+        padding: 24,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        marginBottom: 8,
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        marginBottom: 20,
+    },
+    modalInput: {
+        height: 52,
+        borderWidth: 1.5,
+        borderRadius: 14,
+        paddingHorizontal: 16,
+        fontSize: 16,
+        marginBottom: 24,
+    },
+    modalActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 12,
+    },
+    modalCancelBtn: {
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        justifyContent: 'center',
+    },
+    modalCancelText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    modalSaveBtn: {
+        backgroundColor: COLORS.primary,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+    },
+    modalSaveText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '700',
     },
 });

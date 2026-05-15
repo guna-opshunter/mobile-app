@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { useTheme } from '../../theme';
+import GameMenuModal from '../../components/GameMenuModal';
 
 const { width } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 40, 360);
@@ -92,6 +93,7 @@ export default function SudokuGame({ navigation }: any) {
     const [noteMode, setNoteMode] = useState(false);
     const [notes, setNotes] = useState<Set<number>[][]>([]);
     const [highlightedNumber, setHighlightedNumber] = useState<number | null>(null);
+    const [menuVisible, setMenuVisible] = useState(false);
 
     const textColor = isDarkMode ? '#ffffff' : '#333';
     const cardBg = isDarkMode ? '#1e1e1e' : 'white';
@@ -297,17 +299,7 @@ export default function SudokuGame({ navigation }: any) {
     if (isCompleted) {
         return (
             <View style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : backgroundColor }]}>
-                <TouchableOpacity style={styles.backButton} onPress={() => {
-                    Alert.alert(
-                        '⚙️ Game Menu',
-                        'What would you like to do?',
-                        [
-                            { text: 'Save & Quit', onPress: () => navigation.goBack() },
-                            { text: 'Quit', style: 'destructive', onPress: () => navigation.goBack() },
-                            { text: 'Cancel', style: 'cancel' },
-                        ]
-                    );
-                }}>
+                <TouchableOpacity style={styles.backButton} onPress={() => setMenuVisible(true)}>
                     <Text style={[styles.backButtonText, { color: isDarkMode ? '#646cff' : '#0056b3' }]}>⚙️ Menu</Text>
                 </TouchableOpacity>
                 <View style={[styles.winnerCard, { backgroundColor: cardBg }]}>
@@ -329,17 +321,7 @@ export default function SudokuGame({ navigation }: any) {
 
     return (
         <View style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : backgroundColor }]}>
-            <TouchableOpacity style={styles.backButton} onPress={() => {
-                Alert.alert(
-                    '⚙️ Game Menu',
-                    'What would you like to do?',
-                    [
-                        { text: 'Save & Quit', onPress: () => navigation.goBack() },
-                        { text: 'Quit', style: 'destructive', onPress: () => navigation.goBack() },
-                        { text: 'Cancel', style: 'cancel' },
-                    ]
-                );
-            }}>
+            <TouchableOpacity style={styles.backButton} onPress={() => setMenuVisible(true)}>
                 <Text style={[styles.backButtonText, { color: isDarkMode ? '#646cff' : '#0056b3' }]}>⚙️ Menu</Text>
             </TouchableOpacity>
 
@@ -449,6 +431,13 @@ export default function SudokuGame({ navigation }: any) {
                     );
                 })}
             </View>
+
+            <GameMenuModal 
+                visible={menuVisible} 
+                onClose={() => setMenuVisible(false)} 
+                onSaveAndQuit={() => navigation.goBack()} 
+                onQuit={() => navigation.goBack()} 
+            />
         </View>
     );
 }

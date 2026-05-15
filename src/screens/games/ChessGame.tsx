@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Alert, useWindowDimensions, Modal, Animated } from 'react-native';
 import { useTheme } from '../../theme';
+import GameMenuModal from '../../components/GameMenuModal';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Board config is calculated dynamically based on screen width
 
@@ -36,6 +38,7 @@ export default function ChessGame({ navigation }: any) {
     const [capturedBlack, setCapturedBlack] = useState<string[]>([]);
     const [gameStatus, setGameStatus] = useState<string>('');
     const [validMoves, setValidMoves] = useState<[number, number][]>([]);
+    const [menuVisible, setMenuVisible] = useState(false);
 
     const textColor = isDarkMode ? '#ffffff' : '#333';
     const cardBg = isDarkMode ? '#1e1e1e' : 'white';
@@ -218,7 +221,7 @@ export default function ChessGame({ navigation }: any) {
             {/* Navigation and Reset Floating Menus */}
             <TouchableOpacity 
                 style={[styles.floatingNavBtn, { left: 20, top: 40, backgroundColor: isDarkMode ? 'rgba(50,50,50,0.8)' : 'rgba(255,255,255,0.8)' }]} 
-                onPress={() => navigation.goBack()}
+                onPress={() => setMenuVisible(true)}
             >
                 <Text style={{ fontSize: 14, fontWeight: '700', color: textColor, paddingHorizontal: 8 }}>Menu</Text>
             </TouchableOpacity>
@@ -229,20 +232,28 @@ export default function ChessGame({ navigation }: any) {
             
             {/* Top Half (Black's Side) */}
             <Animated.View style={[StyleSheet.absoluteFill, { bottom: '50%', overflow: 'hidden', backgroundColor: pureWhite }]}>
-                <Animated.View style={[
-                    StyleSheet.absoluteFill, 
-                    { opacity: turnAnim },
-                    { backgroundImage: `linear-gradient(to bottom, ${darkEdge}, ${pureWhite} 90%)` } as any
-                ]} />
+                <Animated.View style={[StyleSheet.absoluteFill, { opacity: turnAnim }]}>
+                    <LinearGradient
+                        colors={[darkEdge, pureWhite]}
+                        locations={[0, 0.9]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                    />
+                </Animated.View>
             </Animated.View>
 
             {/* Bottom Half (White's Side) */}
             <Animated.View style={[StyleSheet.absoluteFill, { top: '50%', overflow: 'hidden', backgroundColor: pureWhite }]}>
-                <Animated.View style={[
-                    StyleSheet.absoluteFill, 
-                    { opacity: whiteTurnOpacity },
-                    { backgroundImage: `linear-gradient(to top,  ${darkEdge}, ${pureWhite} 90%)` } as any
-                ]} />
+                <Animated.View style={[StyleSheet.absoluteFill, { opacity: whiteTurnOpacity }]}>
+                    <LinearGradient
+                        colors={[darkEdge, pureWhite]}
+                        locations={[0, 0.9]}
+                        start={{ x: 0, y: 1 }}
+                        end={{ x: 0, y: 0 }}
+                        style={StyleSheet.absoluteFill}
+                    />
+                </Animated.View>
             </Animated.View>
 
             <ScrollView contentContainerStyle={{ flexGrow: 1 }} style={{ flex: 1 }}>
@@ -361,6 +372,13 @@ export default function ChessGame({ navigation }: any) {
                     </View>
                 </View>
             </Modal>
+
+            <GameMenuModal 
+                visible={menuVisible} 
+                onClose={() => setMenuVisible(false)} 
+                onSaveAndQuit={() => navigation.goBack()} 
+                onQuit={() => navigation.goBack()} 
+            />
 
         </ScrollView>
     </View>

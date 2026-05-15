@@ -63,22 +63,32 @@ export interface QuizRecord {
     dateTime: string;
 }
 
+export interface PasswordRecord {
+    id: string;
+    name: string;
+    password: string;
+    dateTime: string;
+}
+
 interface RecordsContextType {
     bmiRecords: BMIRecord[];
     birthdayRecords: BirthdayRecord[];
     gameRecords: GameRecord[];
     quizRecords: QuizRecord[];
     savedGames: SavedLudoGame[];
+    passwordRecords: PasswordRecord[];
     addBMIRecord: (record: Omit<BMIRecord, 'id' | 'dateTime'>) => void;
     addBirthdayRecord: (record: Omit<BirthdayRecord, 'id' | 'dateTime'>) => void;
     addGameRecord: (record: Omit<GameRecord, 'id' | 'dateTime'>) => void;
     addQuizRecord: (record: Omit<QuizRecord, 'id' | 'dateTime' | 'highScore'>) => void;
+    addPasswordRecord: (record: Omit<PasswordRecord, 'id' | 'dateTime'>) => void;
     saveLudoGame: (game: Omit<SavedLudoGame, 'id' | 'dateTime'>) => void;
     deleteSavedGame: (id: string) => void;
     deleteBMIRecord: (id: string) => void;
     deleteBirthdayRecord: (id: string) => void;
     deleteGameRecord: (id: string) => void;
     deleteQuizRecord: (id: string) => void;
+    deletePasswordRecord: (id: string) => void;
     getQuizHighScore: (levelId: number) => number;
     getSetHighScore: (levelId: number, setNumber: number) => number;
     clearAllRecords: () => void;
@@ -92,6 +102,7 @@ const STORAGE_KEYS = {
     GAME: '@records_game',
     QUIZ: '@records_quiz',
     SAVED_GAMES: '@records_saved_games',
+    PASSWORD: '@records_password',
 };
 
 export function RecordsProvider({ children }: { children: ReactNode }) {
@@ -100,6 +111,7 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
     const [gameRecords, setGameRecords] = useState<GameRecord[]>([]);
     const [quizRecords, setQuizRecords] = useState<QuizRecord[]>([]);
     const [savedGames, setSavedGames] = useState<SavedLudoGame[]>([]);
+    const [passwordRecords, setPasswordRecords] = useState<PasswordRecord[]>([]);
 
     // Load records from AsyncStorage on mount
     useEffect(() => {
@@ -108,12 +120,13 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
 
     const loadRecords = async () => {
         try {
-            const [bmiData, birthdayData, gameData, quizData, savedGamesData] = await Promise.all([
+            const [bmiData, birthdayData, gameData, quizData, savedGamesData, passwordData] = await Promise.all([
                 AsyncStorage.getItem(STORAGE_KEYS.BMI),
                 AsyncStorage.getItem(STORAGE_KEYS.BIRTHDAY),
                 AsyncStorage.getItem(STORAGE_KEYS.GAME),
                 AsyncStorage.getItem(STORAGE_KEYS.QUIZ),
                 AsyncStorage.getItem(STORAGE_KEYS.SAVED_GAMES),
+                AsyncStorage.getItem(STORAGE_KEYS.PASSWORD),
             ]);
 
             if (bmiData) setBmiRecords(JSON.parse(bmiData));
@@ -121,6 +134,7 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
             if (gameData) setGameRecords(JSON.parse(gameData));
             if (quizData) setQuizRecords(JSON.parse(quizData));
             if (savedGamesData) setSavedGames(JSON.parse(savedGamesData));
+            if (passwordData) setPasswordRecords(JSON.parse(passwordData));
         } catch (error) {
             console.error('Error loading records:', error);
         }
@@ -215,6 +229,17 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
         saveRecords(STORAGE_KEYS.QUIZ, finalRecords);
     };
 
+    const addPasswordRecord = (record: Omit<PasswordRecord, 'id' | 'dateTime'>) => {
+        const newRecord: PasswordRecord = {
+            ...record,
+            id: generateId(),
+            dateTime: formatDateTime(),
+        };
+        const updated = [newRecord, ...passwordRecords];
+        setPasswordRecords(updated);
+        saveRecords(STORAGE_KEYS.PASSWORD, updated);
+    };
+
     const deleteBMIRecord = (id: string) => {
         const updated = bmiRecords.filter(r => r.id !== id);
         setBmiRecords(updated);
@@ -257,18 +282,26 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
         saveRecords(STORAGE_KEYS.QUIZ, updated);
     };
 
+    const deletePasswordRecord = (id: string) => {
+        const updated = passwordRecords.filter(r => r.id !== id);
+        setPasswordRecords(updated);
+        saveRecords(STORAGE_KEYS.PASSWORD, updated);
+    };
+
     const clearAllRecords = async () => {
         setBmiRecords([]);
         setBirthdayRecords([]);
         setGameRecords([]);
         setQuizRecords([]);
         setSavedGames([]);
+        setPasswordRecords([]);
         await Promise.all([
             AsyncStorage.removeItem(STORAGE_KEYS.BMI),
             AsyncStorage.removeItem(STORAGE_KEYS.BIRTHDAY),
             AsyncStorage.removeItem(STORAGE_KEYS.GAME),
             AsyncStorage.removeItem(STORAGE_KEYS.QUIZ),
             AsyncStorage.removeItem(STORAGE_KEYS.SAVED_GAMES),
+            AsyncStorage.removeItem(STORAGE_KEYS.PASSWORD),
         ]);
     };
 
@@ -280,16 +313,19 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
                 gameRecords,
                 quizRecords,
                 savedGames,
+                passwordRecords,
                 addBMIRecord,
                 addBirthdayRecord,
                 addGameRecord,
                 addQuizRecord,
+                addPasswordRecord,
                 saveLudoGame,
                 deleteSavedGame,
                 deleteBMIRecord,
                 deleteBirthdayRecord,
                 deleteGameRecord,
                 deleteQuizRecord,
+                deletePasswordRecord,
                 getQuizHighScore,
                 getSetHighScore,
                 clearAllRecords,

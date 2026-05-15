@@ -177,16 +177,16 @@ const styles = StyleSheet.create({
     title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5, marginBottom: 4 },
     subtitle: { fontSize: 15, fontWeight: '500' },
     modeContainer: {
-        flexDirection: 'row', borderRadius: 16, padding: 6, marginBottom: 20,
+        flexDirection: 'row', justifyContent: 'space-between', borderRadius: 16, padding: 6, marginBottom: 20,
         shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
     },
     modeButton: {
-        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 12, borderRadius: 12, gap: 6,
+        flex: 1, alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 10, borderRadius: 12, marginHorizontal: 2,
     },
     modeButtonActive: { backgroundColor: COLORS.primary },
-    modeIcon: { fontSize: 16 },
-    modeText: { fontSize: 13, fontWeight: '700' },
+    modeIcon: { fontSize: 22, marginBottom: 6 },
+    modeText: { fontSize: 12, fontWeight: '700', textAlign: 'center' },
     card: {
         borderRadius: 20, padding: 22, elevation: 4,
         shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12,

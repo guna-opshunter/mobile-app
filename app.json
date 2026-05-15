@@ -2,7 +2,7 @@
   "expo": {
     "name": "NexaPlay",
     "slug": "smart-tools-calc-games",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -12,19 +12,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#3B3B78"
     },
-    "updates": {
-      "fallbackToCacheTimeout": 0
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.nexaplay.gamestools"
+      "bundleIdentifier": "com.nexaplay.gamestools",
+      "buildNumber": "1",
+      "supportsTablet": true
     },
     "android": {
       "package": "com.nexaplay.gamestools",
-      "versionCode": 5,
+      "versionCode": 13,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#3B3B78"
@@ -43,14 +38,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#3B3B78",
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 200
-        }
-      ]
+      "expo-splash-screen"
     ],
     "extra": {
       "eas": {

@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
     BACKGROUND_COLOR: '@settings_bg_color',
     RECENTLY_USED: '@settings_recently_used',
     FAVORITES: '@settings_favorites',
+    CURRENCY_TYPE: '@settings_currency_type',
 };
 
 export interface PersistedSettings {
@@ -21,6 +22,8 @@ export interface PersistedSettings {
     favorites: string[];
     toggleFavorite: (route: string) => void;
     isFavorite: (route: string) => boolean;
+    currencyType: string;
+    setCurrencyType: (currency: string) => void;
     isLoading: boolean;
 }
 
@@ -30,6 +33,7 @@ export function usePersistedSettings(): PersistedSettings {
     const [backgroundColor, setBackgroundColorState] = useState('#F8FAFC');
     const [recentlyUsed, setRecentlyUsedState] = useState<string[]>([]);
     const [favorites, setFavoritesState] = useState<string[]>([]);
+    const [currencyType, setCurrencyTypeState] = useState('$');
     const [isLoading, setIsLoading] = useState(true);
 
     // Load all settings on mount
@@ -39,12 +43,13 @@ export function usePersistedSettings(): PersistedSettings {
 
     const loadSettings = async () => {
         try {
-            const [name, darkMode, bgColor, recent, favs] = await Promise.all([
+            const [name, darkMode, bgColor, recent, favs, curr] = await Promise.all([
                 AsyncStorage.getItem(STORAGE_KEYS.USER_NAME),
                 AsyncStorage.getItem(STORAGE_KEYS.IS_DARK_MODE),
                 AsyncStorage.getItem(STORAGE_KEYS.BACKGROUND_COLOR),
                 AsyncStorage.getItem(STORAGE_KEYS.RECENTLY_USED),
                 AsyncStorage.getItem(STORAGE_KEYS.FAVORITES),
+                AsyncStorage.getItem(STORAGE_KEYS.CURRENCY_TYPE),
             ]);
 
             if (name !== null) setUserNameState(name);
@@ -52,6 +57,7 @@ export function usePersistedSettings(): PersistedSettings {
             if (bgColor !== null) setBackgroundColorState(bgColor);
             if (recent !== null) setRecentlyUsedState(JSON.parse(recent));
             if (favs !== null) setFavoritesState(JSON.parse(favs));
+            if (curr !== null) setCurrencyTypeState(curr);
         } catch (error) {
             console.error('Error loading settings:', error);
         } finally {
@@ -97,6 +103,11 @@ export function usePersistedSettings(): PersistedSettings {
 
     const isFavorite = (route: string) => favorites.includes(route);
 
+    const setCurrencyType = (currency: string) => {
+        setCurrencyTypeState(currency);
+        AsyncStorage.setItem(STORAGE_KEYS.CURRENCY_TYPE, currency).catch(console.error);
+    };
+
     return {
         userName,
         setUserName,
@@ -109,6 +120,8 @@ export function usePersistedSettings(): PersistedSettings {
         favorites,
         toggleFavorite,
         isFavorite,
+        currencyType,
+        setCurrencyType,
         isLoading,
     };
 }

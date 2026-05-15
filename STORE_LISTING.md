@@ -68,7 +68,7 @@ Everyone
 calculator, student tools, chess, sudoku, brain games, math tools, EMI calculator, BMI calculator, unit converter, tip calculator, password generator, age calculator, study tools, offline games, education app
 
 ## Contact Email
-d@gmail.com
+nexaplay.officialgamesandedu@gmail.com
 
 ## Privacy Policy URL
 (Host PRIVACY_POLICY.md on a public URL — e.g. GitHub Pages or Google Sites)

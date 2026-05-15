@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Keyboa
 import { useTheme, COLORS } from '../../theme';
 
 export default function EMICalculator({ navigation }: any) {
-    const { isDarkMode, backgroundColor } = useTheme();
+    const { isDarkMode, backgroundColor, currencyType, setCurrencyType } = useTheme();
     const [amount, setAmount] = useState('');
     const [rate, setRate] = useState('');
     const [tenure, setTenure] = useState('');
     const [result, setResult] = useState<any>(null);
+
+    const CURRENCIES = ['$', '₹', '€', '£'];
 
     const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
@@ -31,7 +33,7 @@ export default function EMICalculator({ navigation }: any) {
     };
 
     const formatCurrency = (val: string) => {
-        return '₹' + parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return currencyType + parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     return (
@@ -49,7 +51,26 @@ export default function EMICalculator({ navigation }: any) {
             </View>
 
             <View style={[styles.card, { backgroundColor: theme.card }]}>
-                <Text style={[styles.label, { color: theme.textSecondary }]}>LOAN AMOUNT (₹)</Text>
+                {/* Currency Selector */}
+                <View style={styles.currencyRow}>
+                    {CURRENCIES.map(curr => (
+                        <TouchableOpacity
+                            key={curr}
+                            style={[
+                                styles.currencyBtn,
+                                currencyType === curr ? { backgroundColor: COLORS.primary } : { backgroundColor: theme.surface, borderColor: theme.border }
+                            ]}
+                            onPress={() => setCurrencyType(curr)}
+                        >
+                            <Text style={[
+                                styles.currencyText,
+                                currencyType === curr ? { color: 'white' } : { color: theme.text }
+                            ]}>{curr}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                <Text style={[styles.label, { color: theme.textSecondary }]}>LOAN AMOUNT ({currencyType})</Text>
                 <TextInput
                     style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
                     keyboardType="numeric"
@@ -192,6 +213,24 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.06,
         shadowRadius: 12,
+    },
+    currencyRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+        gap: 8,
+    },
+    currencyBtn: {
+        flex: 1,
+        height: 40,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+    },
+    currencyText: {
+        fontSize: 16,
+        fontWeight: '700',
     },
     label: {
         fontSize: 12,

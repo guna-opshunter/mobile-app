@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Animated } from 'react-native';
 import { useTheme } from '../../theme';
 import SoundEffects from '../../utils/sounds';
+import GameMenuModal from '../../components/GameMenuModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(SCREEN_WIDTH - 40, 380);
@@ -43,6 +44,7 @@ export default function SnakeGame({ navigation }: any) {
     const [isGameOver, setIsGameOver] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [speed, setSpeed] = useState(INITIAL_SPEED);
+    const [menuVisible, setMenuVisible] = useState(false);
 
     // Using refs for state accessed inside setInterval to avoid stale closures
     const snakeRef = useRef(snake);
@@ -161,13 +163,8 @@ export default function SnakeGame({ navigation }: any) {
         <View style={[styles.container, { backgroundColor: bgColor }]}>
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => {
-                    Alert.alert('⚙️ Options', 'What would you like to do?', [
-                        { text: isPaused ? 'Resume' : 'Pause', onPress: () => setIsPaused(!isPaused) },
-                        { text: 'Restart', onPress: resetGame },
-                        { text: 'Quit', style: 'destructive', onPress: () => navigation.goBack() },
-                        { text: 'Cancel', style: 'cancel' },
-                    ]);
                     if (!isPaused && !isGameOver) setIsPaused(true);
+                    setMenuVisible(true);
                 }}>
                     <Text style={styles.backBtnText}>Menu</Text>
                 </TouchableOpacity>
@@ -262,25 +259,30 @@ export default function SnakeGame({ navigation }: any) {
             {/* Glass D-Pad */}
             <View style={styles.controls}>
                 <View style={styles.dpadRow}>
-                    <TouchableOpacity style={styles.dpadBtn} onPress={() => handleDirection('UP')} activeOpacity={0.5}>
-                        <Text style={styles.dpadArrow}>▲</Text>
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.dpadRow}>
                     <TouchableOpacity style={styles.dpadBtn} onPress={() => handleDirection('LEFT')} activeOpacity={0.5}>
                         <Text style={styles.dpadArrow}>◀</Text>
                     </TouchableOpacity>
-                    <View style={styles.dpadCenter} />
+                    <TouchableOpacity style={styles.dpadBtn} onPress={() => handleDirection('UP')} activeOpacity={0.5}>
+                        <Text style={styles.dpadArrow}>▲</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.dpadBtn} onPress={() => handleDirection('DOWN')} activeOpacity={0.5}>
+                        <Text style={styles.dpadArrow}>▼</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity style={styles.dpadBtn} onPress={() => handleDirection('RIGHT')} activeOpacity={0.5}>
                         <Text style={styles.dpadArrow}>▶</Text>
                     </TouchableOpacity>
                 </View>
-                <View style={styles.dpadRow}>
-                    <TouchableOpacity style={styles.dpadBtn} onPress={() => handleDirection('DOWN')} activeOpacity={0.5}>
-                        <Text style={styles.dpadArrow}>▼</Text>
-                    </TouchableOpacity>
-                </View>
             </View>
+
+            <GameMenuModal 
+                visible={menuVisible} 
+                onClose={() => {
+                    setMenuVisible(false);
+                    if (isPaused && !isGameOver) setIsPaused(false);
+                }} 
+                onSaveAndQuit={() => navigation.goBack()} 
+                onQuit={() => navigation.goBack()} 
+            />
         </View>
     );
 }

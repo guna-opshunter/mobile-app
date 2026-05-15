@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, ScrollView, useWindowDimensions, Modal } from 'react-native';
 import { useTheme, COLORS } from '../../theme';
+import GameMenuModal from '../../components/GameMenuModal';
 
 // Dimensions are dynamically calculated inside components for responsiveness.
 
@@ -31,6 +32,7 @@ export default function TicTacToeGame({ navigation }: any) {
     const [mode, setMode] = useState<Mode | null>(null);
     const [difficulty, setDifficulty] = useState<Difficulty>('medium');
     const [scores, setScores] = useState({ X: 0, O: 0, draw: 0 });
+    const [menuVisible, setMenuVisible] = useState(false);
 
     const textColor = isDarkMode ? '#F8FAFC' : '#0F172A';
     const subColor = isDarkMode ? '#94A3B8' : '#64748B';
@@ -194,7 +196,7 @@ export default function TicTacToeGame({ navigation }: any) {
                 </TouchableOpacity>
 
                 <View style={styles.menuContent}>
-                    <Text style={styles.menuEmoji}>❌⭕</Text>
+                    <Text style={styles.menuEmoji}><Text style={{color: '#EF4444'}}>X</Text> <Text style={{color: '#3B82F6'}}>O</Text></Text>
                     <Text style={[styles.menuTitle, { color: textColor }]}>Tic Tac Toe</Text>
                     <Text style={[styles.menuSubtitle, { color: subColor }]}>Choose your mode</Text>
 
@@ -253,13 +255,7 @@ export default function TicTacToeGame({ navigation }: any) {
 
     return (
         <ScrollView style={[styles.container, { backgroundColor: containerBg }]} contentContainerStyle={{ maxWidth: 600, alignSelf: 'center', width: '100%', flexGrow: 1, paddingBottom: 40 }}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => {
-                Alert.alert('⚙️ Game Menu', 'What would you like to do?', [
-                    { text: 'Save & Quit', onPress: () => navigation.goBack() },
-                    { text: 'Quit', style: 'destructive', onPress: () => navigation.goBack() },
-                    { text: 'Cancel', style: 'cancel' },
-                ]);
-            }}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => setMenuVisible(true)}>
                 <View style={[styles.backBtnBg, { backgroundColor: cardBg }]}>
                     <Text style={[styles.backBtnText, { color: COLORS.primary }]}>⚙️ Menu</Text>
                 </View>
@@ -271,14 +267,14 @@ export default function TicTacToeGame({ navigation }: any) {
                 <Text style={[styles.turnText, { color: subColor }]}>
                     {gameOver
                         ? winner ? `${winner} Wins! 🎉` : "It's a Draw! 🤝"
-                        : `${isXTurn ? '❌ X' : '⭕ O'}'s Turn`}
+                        : `${isXTurn ? 'X' : 'O'}'s Turn`}
                 </Text>
             </View>
 
             {/* Scoreboard */}
             <View style={[styles.scoreBoard, { backgroundColor: cardBg }]}>
                 <View style={styles.scoreItem}>
-                    <Text style={[styles.scoreLabel, { color: '#EF4444' }]}>❌ X</Text>
+                    <Text style={[styles.scoreLabel, { color: '#EF4444' }]}>X</Text>
                     <Text style={[styles.scoreValue, { color: textColor }]}>{scores.X}</Text>
                 </View>
                 <View style={[styles.scoreDivider, { backgroundColor: surfaceBg }]} />
@@ -288,7 +284,7 @@ export default function TicTacToeGame({ navigation }: any) {
                 </View>
                 <View style={[styles.scoreDivider, { backgroundColor: surfaceBg }]} />
                 <View style={styles.scoreItem}>
-                    <Text style={[styles.scoreLabel, { color: '#3B82F6' }]}>⭕ O</Text>
+                    <Text style={[styles.scoreLabel, { color: '#3B82F6' }]}>O</Text>
                     <Text style={[styles.scoreValue, { color: textColor }]}>{scores.O}</Text>
                 </View>
             </View>
@@ -314,9 +310,9 @@ export default function TicTacToeGame({ navigation }: any) {
                         <Text style={[
                             styles.cellText,
                             { color: cell === 'X' ? '#EF4444' : '#3B82F6' },
-                            winLine?.includes(i) && { fontSize: 44 },
+                            winLine?.includes(i) && { fontSize: 64 },
                         ]}>
-                            {cell === 'X' ? '❌' : cell === 'O' ? '⭕' : ''}
+                            {cell}
                         </Text>
                     </TouchableOpacity>
                 ))}
@@ -372,6 +368,13 @@ export default function TicTacToeGame({ navigation }: any) {
                     </View>
                 </View>
             </Modal>
+            
+            <GameMenuModal 
+                visible={menuVisible} 
+                onClose={() => setMenuVisible(false)} 
+                onSaveAndQuit={() => navigation.goBack()} 
+                onQuit={() => navigation.goBack()} 
+            />
         </ScrollView>
     );
 }
@@ -424,7 +427,7 @@ const styles = StyleSheet.create({
         shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 6,
     },
     cell: { borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-    cellText: { fontSize: 36 },
+    cellText: { fontSize: 52, fontWeight: '900' },
     actionRow: { flexDirection: 'row', gap: 12, marginTop: 24, justifyContent: 'center' },
     actionBtn: {
         flex: 1, paddingVertical: 16, borderRadius: 14, alignItems: 'center',

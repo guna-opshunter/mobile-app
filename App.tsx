@@ -1,8 +1,8 @@
 import React, { Suspense, memo } from 'react';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Platform, ActivityIndicator, Image, Animated } from 'react-native';
 import ErrorBoundary from './src/components/ErrorBoundary';
 
 import { RecordsProvider } from './src/context/RecordsContext';
@@ -15,9 +15,8 @@ import { usePersistedSettings } from './src/utils/usePersistedSettings';
 export { COLORS, useTheme } from './src/theme';
 import { COLORS, useTheme, ThemeContext } from './src/theme';
 
-// ALL screens lazy-loaded (including Home and Games)
+// ALL screens lazy-loaded
 const HomeScreen = React.lazy(() => import('./src/screens/HomeScreen'));
-const GamesScreen = React.lazy(() => import('./src/screens/GamesScreen'));
 
 // Lazy-loaded Calculators
 const CalculatorScreen = React.lazy(() => import('./src/screens/CalculatorScreen'));
@@ -44,7 +43,8 @@ const ChessGame = React.lazy(() => import('./src/screens/games/ChessGame'));
 const LudoGame = React.lazy(() => import('./src/screens/games/LudoGame'));
 const SudokuGame = React.lazy(() => import('./src/screens/games/SudokuGame'));
 const TicTacToeGame = React.lazy(() => import('./src/screens/games/TicTacToeGame'));
-const SnakeLadderGame = React.lazy(() => import('./src/screens/games/SnakeGame'));
+const SnakeGame = React.lazy(() => import('./src/screens/games/SnakeGame'));
+const SnakeAndLadderGame = React.lazy(() => import('./src/screens/games/SnakeAndLadderGame'));
 const Game2048 = React.lazy(() => import('./src/screens/games/Game2048'));
 
 // Lazy-loaded Screens
@@ -53,6 +53,7 @@ const ProfileScreen = React.lazy(() => import('./src/screens/ProfileScreen'));
 
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -76,7 +77,6 @@ function createSuspenseWrapper(LazyComponent: React.LazyExoticComponent<any>) {
 
 // Stable screen component references — created once at module level
 const SuspenseHome = createSuspenseWrapper(HomeScreen);
-const SuspenseGames = createSuspenseWrapper(GamesScreen);
 
 const calculatorScreens = [
   { name: 'Calculator', component: createSuspenseWrapper(CalculatorScreen) },
@@ -104,7 +104,8 @@ const gameScreens = [
   { name: 'Ludo', component: createSuspenseWrapper(LudoGame) },
   { name: 'Sudoku', component: createSuspenseWrapper(SudokuGame) },
   { name: 'TicTacToe', component: createSuspenseWrapper(TicTacToeGame) },
-  { name: 'Snake', component: createSuspenseWrapper(SnakeLadderGame) },
+  { name: 'Snake', component: createSuspenseWrapper(SnakeGame) },
+  { name: 'SnakeLadder', component: createSuspenseWrapper(SnakeAndLadderGame) },
   { name: 'Game2048', component: createSuspenseWrapper(Game2048) },
 ];
 
@@ -143,19 +144,6 @@ function HomeTab() {
   );
 }
 
-// Games Tab Stack (GamesScreen + game drill-downs)
-function GamesTab() {
-  const screenOptions = useStackOptions();
-  return (
-    <Stack.Navigator screenOptions={screenOptions}>
-      <Stack.Screen name="GamesHome" component={SuspenseGames} />
-      {gameScreens.map(s => (
-        <Stack.Screen key={s.name} name={s.name} component={s.component} />
-      ))}
-    </Stack.Navigator>
-  );
-}
-
 // Records Tab Stack
 function RecordsTab() {
   const screenOptions = useStackOptions();
@@ -183,12 +171,28 @@ function ProfileTab() {
 }
 
 // Tab bar icon component
-function TabIcon({ icon, focused, color }: { icon: string; focused: boolean; color: string }) {
+function TabIcon({ iconName, focused, color }: { iconName: keyof typeof Ionicons.glyphMap; focused: boolean; color: string }) {
   return (
     <View style={[styles.tabIconContainer, focused && styles.tabIconFocused]}>
-      <Text style={[styles.tabIconText, focused && styles.tabIconTextFocused]}>{icon}</Text>
+      <Ionicons name={iconName} size={focused ? 24 : 22} color={color} style={{ opacity: focused ? 1 : 0.8 }} />
     </View>
   );
+}
+
+// Root screen names for each tab — tab bar is only visible on these
+const TAB_ROOT_SCREENS: Record<string, string> = {
+  HomeTab: 'HomeScreen',
+  RecordsTab: 'RecordsHome',
+  ProfileTab: 'ProfileHome',
+};
+
+// Helper: returns tabBarStyle to hide the tab bar on sub-screens
+function getTabBarStyle(route: any, tabName: string, baseStyle: any) {
+  const routeName = getFocusedRouteNameFromRoute(route) ?? TAB_ROOT_SCREENS[tabName];
+  if (routeName !== TAB_ROOT_SCREENS[tabName]) {
+    return { display: 'none' as const };
+  }
+  return baseStyle;
 }
 
 // Main Tab Navigator
@@ -197,25 +201,26 @@ function MainTabs() {
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const insets = useSafeAreaInsets();
 
-  const tabBarHeight = Platform.OS === 'ios' ? 80 + insets.bottom : 68;
+  const tabBarHeight = Platform.OS === 'ios' ? 105 + insets.bottom : 93;
+
+  const baseTabBarStyle = {
+    backgroundColor: theme.card,
+    borderTopColor: theme.border,
+    borderTopWidth: 0.5,
+    height: tabBarHeight,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? insets.bottom : 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 12,
+  };
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.card,
-          borderTopColor: theme.border,
-          borderTopWidth: 0.5,
-          height: tabBarHeight,
-          paddingTop: 8,
-          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          elevation: 12,
-        },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: theme.textSecondary,
         tabBarLabelStyle: {
@@ -228,49 +233,69 @@ function MainTabs() {
       <Tab.Screen
         name="HomeTab"
         component={HomeTab}
-        options={{
+        options={({ route }) => ({
           tabBarLabel: 'Home',
-          tabBarIcon: ({ focused, color }) => <TabIcon icon="🏠" focused={focused} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="GamesTab"
-        component={GamesTab}
-        options={{
-          tabBarLabel: 'Games',
-          tabBarIcon: ({ focused, color }) => <TabIcon icon="🎮" focused={focused} color={color} />,
-        }}
+          tabBarIcon: ({ focused, color }) => <TabIcon iconName={focused ? "home" : "home-outline"} focused={focused} color={color} />,
+          tabBarStyle: getTabBarStyle(route, 'HomeTab', baseTabBarStyle),
+        })}
       />
       <Tab.Screen
         name="RecordsTab"
         component={RecordsTab}
-        options={{
+        options={({ route }) => ({
           tabBarLabel: 'Records',
-          tabBarIcon: ({ focused, color }) => <TabIcon icon="📊" focused={focused} color={color} />,
-        }}
+          tabBarIcon: ({ focused, color }) => <TabIcon iconName={focused ? "stats-chart" : "stats-chart-outline"} focused={focused} color={color} />,
+          tabBarStyle: getTabBarStyle(route, 'RecordsTab', baseTabBarStyle),
+        })}
       />
       <Tab.Screen
         name="ProfileTab"
         component={ProfileTab}
-        options={{
+        options={({ route }) => ({
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ focused, color }) => <TabIcon icon="👤" focused={focused} color={color} />,
-        }}
+          tabBarIcon: ({ focused, color }) => <TabIcon iconName={focused ? "person" : "person-outline"} focused={focused} color={color} />,
+          tabBarStyle: getTabBarStyle(route, 'ProfileTab', baseTabBarStyle),
+        })}
       />
     </Tab.Navigator>
   );
 }
 
-// Simple splash — no animations to save CPU on startup
 function SplashScreen() {
+  const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
+  const opacityAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    // Clean, elegant modern app entrance
+    Animated.parallel([
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 20,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
+
   return (
     <View style={styles.splashContainer}>
-      <View style={styles.splashContent}>
-        <Text style={styles.splashIcon}>🎮</Text>
+      <Animated.View style={[styles.splashContent, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
+        <Image 
+          source={require('./assets/icon.png')} 
+          style={{ width: 150, height: 150, marginBottom: 20, borderRadius: 20 }}
+          resizeMode="contain"
+        />
+      </Animated.View>
+      <Animated.View style={{ opacity: opacityAnim, alignItems: 'center' }}>
         <Text style={styles.splashTitle}>NexaPlay</Text>
         <Text style={styles.splashSubtitle}>Games & Smart Tools</Text>
         <ActivityIndicator size="small" color={COLORS.primaryLight} style={{ marginTop: 24 }} />
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -309,6 +334,8 @@ function AppContent() {
       favorites: settings.favorites,
       toggleFavorite: settings.toggleFavorite,
       isFavorite: settings.isFavorite,
+      currencyType: settings.currencyType,
+      setCurrencyType: settings.setCurrencyType,
       isLoading: settings.isLoading,
     }}>
       <RecordsProvider>
@@ -362,17 +389,14 @@ const styles = StyleSheet.create({
   // Splash
   splashContainer: {
     flex: 1,
-    backgroundColor: COLORS.dark.bg,
+    backgroundColor: '#2D2D6B',
     justifyContent: 'center',
     alignItems: 'center',
   },
   splashContent: {
     alignItems: 'center',
   },
-  splashIcon: {
-    fontSize: 72,
-    marginBottom: 20,
-  },
+
   splashTitle: {
     fontSize: 36,
     fontWeight: '800',

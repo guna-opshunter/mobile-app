@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Keyboa
 import { useTheme, COLORS } from '../../theme';
 
 export default function TipCalculator({ navigation }: any) {
-    const { isDarkMode, backgroundColor } = useTheme();
+    const { isDarkMode, backgroundColor, currencyType, setCurrencyType } = useTheme();
     const [billAmount, setBillAmount] = useState('');
     const [tipPercent, setTipPercent] = useState('15');
     const [splitCount, setSplitCount] = useState('1');
+
+    const CURRENCIES = ['$', '₹', '€', '£'];
 
     const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
@@ -48,10 +50,29 @@ export default function TipCalculator({ navigation }: any) {
 
             {/* Input Card */}
             <View style={[styles.inputCard, { backgroundColor: theme.card }]}>
+                {/* Currency Selector */}
+                <View style={styles.currencyRow}>
+                    {CURRENCIES.map(curr => (
+                        <TouchableOpacity
+                            key={curr}
+                            style={[
+                                styles.currencyBtn,
+                                currencyType === curr ? { backgroundColor: COLORS.primary } : { backgroundColor: theme.surface, borderColor: theme.border }
+                            ]}
+                            onPress={() => setCurrencyType(curr)}
+                        >
+                            <Text style={[
+                                styles.currencyText,
+                                currencyType === curr ? { color: 'white' } : { color: theme.text }
+                            ]}>{curr}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
                 {/* Bill Amount */}
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>BILL AMOUNT</Text>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>BILL AMOUNT ({currencyType})</Text>
                 <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                    <Text style={[styles.currencySymbol, { color: theme.textSecondary }]}>$</Text>
+                    <Text style={[styles.currencySymbol, { color: theme.textSecondary }]}>{currencyType}</Text>
                     <TextInput
                         style={[styles.input, { color: theme.text }]}
                         value={billAmount}
@@ -137,7 +158,7 @@ export default function TipCalculator({ navigation }: any) {
                                 <Text style={styles.resultTitle}>Tip Amount</Text>
                                 <Text style={styles.resultSubtitle}>/ person</Text>
                             </View>
-                            <Text style={styles.resultValue}>${results.tipPerPerson}</Text>
+                            <Text style={styles.resultValue}>{currencyType}{results.tipPerPerson}</Text>
                         </View>
                         <View style={styles.divider} />
                     </>
@@ -147,17 +168,17 @@ export default function TipCalculator({ navigation }: any) {
                         <Text style={styles.resultTitle}>Total Amount</Text>
                         <Text style={styles.resultSubtitle}>{parseInt(splitCount) > 1 ? '/ person' : 'including tip'}</Text>
                     </View>
-                    <Text style={[styles.resultValue, styles.resultValueLarge]}>${results.totalPerPerson}</Text>
+                    <Text style={[styles.resultValue, styles.resultValueLarge]}>{currencyType}{results.totalPerPerson}</Text>
                 </View>
 
                 <View style={styles.totalBreakdown}>
                     <View style={styles.breakdownItem}>
                         <Text style={styles.breakdownLabel}>Total Bill</Text>
-                        <Text style={styles.breakdownValue}>${results.totalBillAmount}</Text>
+                        <Text style={styles.breakdownValue}>{currencyType}{results.totalBillAmount}</Text>
                     </View>
                     <View style={styles.breakdownItem}>
                         <Text style={styles.breakdownLabel}>Total Tip</Text>
-                        <Text style={styles.breakdownValue}>${results.totalTipAmount}</Text>
+                        <Text style={styles.breakdownValue}>{currencyType}{results.totalTipAmount}</Text>
                     </View>
                 </View>
             </View>
@@ -218,6 +239,24 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.08,
         shadowRadius: 16,
         marginBottom: 20,
+    },
+    currencyRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+        gap: 8,
+    },
+    currencyBtn: {
+        flex: 1,
+        height: 40,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+    },
+    currencyText: {
+        fontSize: 16,
+        fontWeight: '700',
     },
     inputLabel: {
         fontSize: 12,

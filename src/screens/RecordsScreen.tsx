@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, FlatList, 
 import { useTheme, COLORS } from '../theme';
 import { useRecords, getBirthdayCountdown, BMIRecord, BirthdayRecord, GameRecord, QuizRecord, SavedLudoGame } from '../context/RecordsContext';
 
-type TabType = 'bmi' | 'birthday' | 'games' | 'quiz';
+type TabType = 'bmi' | 'birthday' | 'games' | 'quiz' | 'passwords';
 
 export default function RecordsScreen({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
@@ -13,11 +13,13 @@ export default function RecordsScreen({ navigation }: any) {
         gameRecords,
         quizRecords,
         savedGames,
+        passwordRecords,
         deleteBMIRecord,
         deleteBirthdayRecord,
         deleteGameRecord,
         deleteQuizRecord,
         deleteSavedGame,
+        deletePasswordRecord,
     } = useRecords();
 
     const [activeTab, setActiveTab] = useState<TabType>('quiz');
@@ -43,7 +45,7 @@ export default function RecordsScreen({ navigation }: any) {
     }, [activeTab, birthdayRecords]);
 
     const handleDelete = (type: TabType, id: string, name: string) => {
-        const typeLabel = type === 'bmi' ? 'BMI' : type === 'birthday' ? 'birthday' : type === 'quiz' ? 'quiz' : 'game';
+        const typeLabel = type === 'bmi' ? 'BMI' : type === 'birthday' ? 'birthday' : type === 'quiz' ? 'quiz' : type === 'passwords' ? 'password' : 'game';
 
         Alert.alert(
             'Delete Record',
@@ -57,6 +59,7 @@ export default function RecordsScreen({ navigation }: any) {
                         if (type === 'bmi') deleteBMIRecord(id);
                         else if (type === 'birthday') deleteBirthdayRecord(id);
                         else if (type === 'quiz') deleteQuizRecord(id);
+                        else if (type === 'passwords') deletePasswordRecord(id);
                         else deleteGameRecord(id);
                     },
                 },
@@ -67,6 +70,7 @@ export default function RecordsScreen({ navigation }: any) {
     const tabs = [
         { key: 'quiz' as TabType, label: 'Quiz', icon: '🎓', count: quizRecords.length, color: COLORS.primary },
         { key: 'bmi' as TabType, label: 'BMI', icon: '⚖️', count: bmiRecords.length, color: '#3B82F6' },
+        { key: 'passwords' as TabType, label: 'Passwords', icon: '🔐', count: passwordRecords.length, color: '#10B981' },
         { key: 'birthday' as TabType, label: 'Birthday', icon: '🎂', count: birthdayRecords.length, color: '#F97316' },
         { key: 'games' as TabType, label: 'Games', icon: '🎮', count: gameRecords.length + savedGames.length, color: '#EF4444' },
     ];
@@ -374,6 +378,32 @@ export default function RecordsScreen({ navigation }: any) {
         );
     };
 
+    const renderPasswordRecords = () => {
+        if (passwordRecords.length === 0) {
+            return renderEmptyState('🔐', 'No passwords saved yet', 'Generate a secure password and save it', 'Generate Password →', 'PasswordGen');
+        }
+
+        return passwordRecords.map(record => (
+            <View key={record.id} style={[styles.recordCard, { backgroundColor: theme.card }]}>
+                <View style={styles.recordHeader}>
+                    <View>
+                        <Text style={[styles.recordName, { color: theme.text }]}>{record.name}</Text>
+                        <Text style={[styles.recordDate, { color: theme.textSecondary }]}>{record.dateTime}</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={[styles.deleteButton, { backgroundColor: '#EF444410' }]}
+                        onPress={() => handleDelete('passwords', record.id, record.name)}
+                    >
+                        <Text style={styles.deleteIconText}>×</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={[styles.passwordDisplay, { backgroundColor: theme.surface }]}>
+                    <Text style={[styles.passwordValue, { color: theme.text }]} selectable={true}>{record.password}</Text>
+                </View>
+            </View>
+        ));
+    };
+
     const renderEmptyState = (icon: string, title: string, subtitle: string, ctaLabel?: string, ctaRoute?: string) => (
         <View style={styles.emptyContainer}>
             <View style={[styles.emptyIconBg, { backgroundColor: COLORS.primary + '10' }]}>
@@ -457,6 +487,7 @@ export default function RecordsScreen({ navigation }: any) {
                     <View>
                         {activeTab === 'quiz' && renderQuizRecords()}
                         {activeTab === 'bmi' && renderBMIRecords()}
+                        {activeTab === 'passwords' && renderPasswordRecords()}
                         {activeTab === 'birthday' && renderBirthdayRecords()}
                         {activeTab === 'games' && renderGameRecords()}
                         <View style={styles.bottomPadding} />
@@ -815,6 +846,21 @@ const styles = StyleSheet.create({
     savedDate: {
         fontSize: 12,
         fontWeight: '500',
+    },
+    // Password Styles
+    passwordDisplay: {
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(16, 185, 129, 0.2)',
+    },
+    passwordValue: {
+        fontSize: 20,
+        fontWeight: '700',
+        letterSpacing: 2,
     },
     // Game Styles
     gameContent: {
