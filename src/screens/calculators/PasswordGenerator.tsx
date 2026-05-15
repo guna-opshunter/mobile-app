@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, TextInput, ToastAndroid, Platform, Alert, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, TextInput, ToastAndroid, Platform, Alert, Animated, Modal } from 'react-native';
 import { useTheme, COLORS } from '../../theme';
 import { useRecords } from '../../context/RecordsContext';
 
