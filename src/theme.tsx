@@ -45,6 +45,10 @@ export interface ThemeContextType {
     isFavorite: (route: string) => boolean;
     currencyType: string;
     setCurrencyType: (currency: string) => void;
+    navigationType: 'buttons' | 'swipe';
+    setNavigationType: (type: 'buttons' | 'swipe') => void;
+    setupCompleted: boolean;
+    setSetupCompleted: (completed: boolean) => void;
     isLoading: boolean;
 }
 
@@ -62,6 +66,10 @@ export const ThemeContext = createContext<ThemeContextType>({
     isFavorite: () => false,
     currencyType: '$',
     setCurrencyType: () => { },
+    navigationType: 'buttons',
+    setNavigationType: () => { },
+    setupCompleted: false,
+    setSetupCompleted: () => { },
     isLoading: true,
 });
 

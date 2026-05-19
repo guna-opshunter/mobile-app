@@ -205,7 +205,7 @@ export default function SpeedCalculator({ navigation }: any) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 20 },
-    backButton: { marginTop: 40, marginBottom: 16 },
+    backButton: { marginTop: 8, marginBottom: 16 },
     backButtonBg: {
         alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 10,
         borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 },

@@ -1,7 +1,9 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Keyboard, ScrollView, Animated, KeyboardAvoidingView, Platform, useWindowDimensions, Modal, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../theme';
 import SoundEffects from '../utils/sounds';
+import { ms, fp, wp, getHorizontalPadding } from '../utils/responsive';
 
 // Static data arrays moved outside component to prevent re-creation on every render
 const calculators = [
@@ -38,16 +40,19 @@ const games = [
 const allItems = [...calculators, ...games];
 
 export default function HomeScreen({ navigation }: any) {
-    const { userName, setUserName, isDarkMode, recentlyUsed, addRecentlyUsed, favorites, toggleFavorite, isFavorite } = useTheme();
+    const { userName, setUserName, isDarkMode, backgroundColor, recentlyUsed, addRecentlyUsed, favorites, toggleFavorite, isFavorite } = useTheme();
     const [showOptions, setShowOptions] = React.useState(!!userName);
     const [searchQuery, setSearchQuery] = useState('');
-    const { width } = useWindowDimensions();
+    const { width, height } = useWindowDimensions();
 
     const theme = isDarkMode ? COLORS.dark : COLORS.light;
     
-    // Calculate responsive width (max 600px for tablets)
+    // Responsive grid: adapt columns and card size to screen width
+    const hPad = getHorizontalPadding();
     const containerWidth = Math.min(width, 600);
-    const CARD_WIDTH = (containerWidth - 56) / 3;
+    const numCols = width >= 600 ? 5 : width >= 430 ? 4 : 3;
+    const gridGap = ms(12);
+    const CARD_WIDTH = (containerWidth - (hPad * 2) - (gridGap * (numCols - 1))) / numCols;
 
     // Lightweight animations — one per section instead of one per card
     const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -136,7 +141,7 @@ export default function HomeScreen({ navigation }: any) {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.bg }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : backgroundColor }]} edges={['top']}>
             {!showOptions ? (
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -199,7 +204,7 @@ export default function HomeScreen({ navigation }: any) {
             ) : (
                 <ScrollView
                     style={styles.scrollView}
-                    contentContainerStyle={[styles.navSection, { maxWidth: 600, alignSelf: 'center', width: '100%' }]}
+                    contentContainerStyle={[styles.navSection, { maxWidth: 600, alignSelf: 'center', width: '100%', paddingHorizontal: hPad }]}
                     showsVerticalScrollIndicator={false}
                     keyboardDismissMode="on-drag"
                 >
@@ -427,7 +432,7 @@ export default function HomeScreen({ navigation }: any) {
                     <View style={styles.footerSpace} />
                 </ScrollView>
             )}
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -462,21 +467,21 @@ const styles = StyleSheet.create({
         left: -60,
     },
     welcomeIcon: {
-        fontSize: 56,
+        fontSize: fp(56),
         marginBottom: 16,
     },
     title: {
-        fontSize: 34,
+        fontSize: fp(34),
         fontWeight: '800',
         textAlign: 'center',
         marginBottom: 8,
         letterSpacing: -0.5,
     },
     subtitle: {
-        fontSize: 16,
+        fontSize: fp(16),
         textAlign: 'center',
         marginBottom: 40,
-        lineHeight: 22,
+        lineHeight: fp(22),
     },
     card: {
         width: '100%',
@@ -535,8 +540,8 @@ const styles = StyleSheet.create({
     // Dashboard Section
     navSection: {
         paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 30,
+        paddingTop: ms(16),
+        paddingBottom: ms(30),
     },
     header: {
         marginBottom: 24,
@@ -545,12 +550,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     greeting: {
-        fontSize: 15,
+        fontSize: fp(15),
         fontWeight: '500',
         letterSpacing: 0.2,
     },
     userName: {
-        fontSize: 28,
+        fontSize: fp(28),
         fontWeight: '800',
         marginTop: 4,
         letterSpacing: -0.5,
@@ -636,27 +641,27 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     sectionTitle: {
-        fontSize: 20,
+        fontSize: fp(20),
         fontWeight: '700',
         letterSpacing: -0.3,
     },
     sectionCount: {
-        fontSize: 13,
+        fontSize: fp(13),
         fontWeight: '600',
     },
     // Grid
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        marginBottom: 28,
+        gap: ms(10),
+        marginBottom: ms(28),
     },
     navButton: {
-        paddingTop: 20,
-        paddingBottom: 16,
-        paddingHorizontal: 8,
-        borderRadius: 18,
-        marginBottom: 12,
+        paddingTop: ms(18),
+        paddingBottom: ms(14),
+        paddingHorizontal: ms(6),
+        borderRadius: ms(16),
+        marginBottom: ms(4),
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: '#000',
@@ -689,18 +694,18 @@ const styles = StyleSheet.create({
         letterSpacing: -0.3,
     },
     navIconBg: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
+        width: ms(44),
+        height: ms(44),
+        borderRadius: ms(13),
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: ms(8),
     },
     navIcon: {
-        fontSize: 26,
+        fontSize: fp(24),
     },
     navButtonText: {
-        fontSize: 12,
+        fontSize: fp(11),
         fontWeight: '700',
         textAlign: 'center',
         letterSpacing: 0.1,
@@ -878,12 +883,12 @@ const styles = StyleSheet.create({
     },
     // Recently Used
     recentCard: {
-        width: 90,
-        paddingVertical: 14,
-        paddingHorizontal: 8,
-        borderRadius: 16,
+        width: ms(88),
+        paddingVertical: ms(14),
+        paddingHorizontal: ms(8),
+        borderRadius: ms(16),
         alignItems: 'center',
-        marginRight: 10,
+        marginRight: ms(10),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -892,15 +897,15 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     recentIconBg: {
-        width: 44,
-        height: 44,
-        borderRadius: 13,
+        width: ms(42),
+        height: ms(42),
+        borderRadius: ms(12),
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: ms(8),
     },
     recentName: {
-        fontSize: 11,
+        fontSize: fp(11),
         fontWeight: '700',
         textAlign: 'center',
     },

@@ -658,6 +658,7 @@ export default function LudoGame({ navigation, route }: any) {
                     onPress={() => moveToken(playerIndex, tokenIndex)}
                     disabled={!canInteract}
                     activeOpacity={0.8}
+                    style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
                 >
                     {/* Circular token */}
                     <View style={[styles.tokenCircle, { backgroundColor: tokenColor, borderColor: tokenDark }]}>
@@ -727,7 +728,7 @@ export default function LudoGame({ navigation, route }: any) {
 
         // Determine cell color
         let cellColor = '#FFFFFF';
-        let borderColor = '#CBD5E1';
+        let borderColor = '#1E293B';
         let isPath = true;
 
         // Red home lane (bottom arm)
@@ -1022,6 +1023,10 @@ export default function LudoGame({ navigation, route }: any) {
                     {/* Start Button */}
                     <TouchableOpacity style={styles.startBtn} onPress={startGame} activeOpacity={0.8}>
                         <Text style={styles.startBtnText}>🎮 Start Game</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
+                        <Text style={[styles.backLinkText, { color: subtitleColor }]}>← Back to Home</Text>
                     </TouchableOpacity>
                 </ScrollView >
             </View >
@@ -1361,7 +1366,7 @@ const styles = StyleSheet.create({
     },
     // Game Screen
     turnBadge: {
-        marginTop: 40,
+        marginTop: 8,
         paddingVertical: 10,
         paddingHorizontal: 28,
         borderRadius: 24,
@@ -1470,7 +1475,8 @@ const styles = StyleSheet.create({
         position: 'absolute',
         width: CELL_SIZE - 1,
         height: CELL_SIZE - 1,
-        borderWidth: 0.5,
+        borderWidth: 1,
+        borderColor: '#1E293B',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -1503,11 +1509,15 @@ const styles = StyleSheet.create({
         height: CELL_SIZE * 6,
         borderRadius: 8,
         padding: 8,
+        borderWidth: 1.5,
+        borderColor: '#1E293B',
     },
     homeInner: {
         flex: 1,
         backgroundColor: '#FFFFFF',
         borderRadius: 8,
+        borderWidth: 1.5,
+        borderColor: '#1E293B',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -1540,6 +1550,8 @@ const styles = StyleSheet.create({
         width: CELL_SIZE * 3,
         height: CELL_SIZE * 3,
         backgroundColor: '#FFFFFF',
+        borderWidth: 1.5,
+        borderColor: '#1E293B',
     },
     centerTriangle: {
         position: 'absolute',
@@ -1805,5 +1817,15 @@ const styles = StyleSheet.create({
     secondaryBtnText: {
         fontSize: 15,
         fontWeight: '600',
+    },
+    backLink: {
+        marginTop: 20,
+        paddingVertical: 10,
+        marginBottom: 40,
+    },
+    backLinkText: {
+        fontSize: 15,
+        fontWeight: '600',
+        textAlign: 'center',
     },
 });

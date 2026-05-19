@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Keyboard, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../../theme';
 import { useRecords } from '../../context/RecordsContext';
+import { ms, fp } from '../../utils/responsive';
 
 export default function BMICalculator({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
@@ -65,7 +67,8 @@ export default function BMICalculator({ navigation }: any) {
     };
 
     return (
-        <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }]}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }]} edges={['top']}>
+        <ScrollView style={styles.container}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <View style={[styles.backButtonBg, { backgroundColor: theme.card }]}>
                     <Text style={[styles.backButtonText, { color: COLORS.primary }]}>← Back</Text>
@@ -174,17 +177,21 @@ export default function BMICalculator({ navigation }: any) {
 
             <View style={{ height: 40 }} />
         </ScrollView>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+    },
     container: {
         flex: 1,
-        padding: 20,
+        padding: ms(20),
     },
     backButton: {
-        marginTop: 40,
-        marginBottom: 16,
+        marginTop: ms(8),
+        marginBottom: ms(16),
     },
     backButtonBg: {
         alignSelf: 'flex-start',
@@ -210,13 +217,13 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     title: {
-        fontSize: 28,
+        fontSize: fp(28),
         fontWeight: '800',
         letterSpacing: -0.5,
         marginBottom: 4,
     },
     subtitle: {
-        fontSize: 15,
+        fontSize: fp(15),
         fontWeight: '500',
     },
     card: {

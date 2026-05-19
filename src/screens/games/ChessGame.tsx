@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Alert
 import { useTheme } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
 import { LinearGradient } from 'expo-linear-gradient';
-
+import { useRecords } from '../../context/RecordsContext';
 // Board config is calculated dynamically based on screen width
 
 // Chess pieces as Unicode characters
@@ -26,6 +26,7 @@ const initialBoard = (): (string | null)[][] => [
 export default function ChessGame({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
     const { width } = useWindowDimensions();
+    const { addGameRecord } = useRecords();
     
     // Dynamic Responsive Sizing
     const boardSize = Math.min(width - 40, 400);
@@ -38,7 +39,22 @@ export default function ChessGame({ navigation }: any) {
     const [capturedBlack, setCapturedBlack] = useState<string[]>([]);
     const [gameStatus, setGameStatus] = useState<string>('');
     const [validMoves, setValidMoves] = useState<[number, number][]>([]);
+    const [inCheck, setInCheck] = useState<'w' | 'b' | null>(null);
     const [menuVisible, setMenuVisible] = useState(false);
+
+    useEffect(() => {
+        if (gameStatus.includes('Wins')) {
+            const winnerName = gameStatus.includes('White') ? 'White' : 'Black';
+            addGameRecord({
+                game: 'chess',
+                winner: winnerName,
+                winnerColor: winnerName === 'White' ? '#D1D5DB' : '#374151',
+                gameMode: 'passplay',
+                isHumanWinner: true,
+                details: `King captured by ${winnerName}`
+            });
+        }
+    }, [gameStatus]);
 
     const textColor = isDarkMode ? '#ffffff' : '#333';
     const cardBg = isDarkMode ? '#1e1e1e' : 'white';
@@ -75,15 +91,29 @@ export default function ChessGame({ navigation }: any) {
     const badgeBg = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
     const badgeBorder = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
 
-    const isValidMove = (fromRow: number, fromCol: number, toRow: number, toCol: number): boolean => {
-        const piece = board[fromRow][fromCol];
+    const isPathClear = (boardState: (string | null)[][], fromRow: number, fromCol: number, toRow: number, toCol: number): boolean => {
+        const rowStep = toRow > fromRow ? 1 : toRow < fromRow ? -1 : 0;
+        const colStep = toCol > fromCol ? 1 : toCol < fromCol ? -1 : 0;
+
+        let row = fromRow + rowStep;
+        let col = fromCol + colStep;
+
+        while (row !== toRow || col !== toCol) {
+            if (boardState[row][col]) return false;
+            row += rowStep;
+            col += colStep;
+        }
+        return true;
+    };
+
+    const isPseudoLegalMove = (boardState: (string | null)[][], fromRow: number, fromCol: number, toRow: number, toCol: number): boolean => {
+        const piece = boardState[fromRow][fromCol];
         if (!piece) return false;
 
         const pieceType = piece[1];
         const pieceColor = piece[0];
-        const targetPiece = board[toRow][toCol];
+        const targetPiece = boardState[toRow][toCol];
 
-        // Can't capture own piece
         if (targetPiece && targetPiece[0] === pieceColor) return false;
 
         const rowDiff = toRow - fromRow;
@@ -92,35 +122,33 @@ export default function ChessGame({ navigation }: any) {
         const absColDiff = Math.abs(colDiff);
 
         switch (pieceType) {
-            case 'P': // Pawn
+            case 'P':
                 const direction = pieceColor === 'w' ? -1 : 1;
                 const startRow = pieceColor === 'w' ? 6 : 1;
 
-                // Move forward
                 if (colDiff === 0 && !targetPiece) {
                     if (rowDiff === direction) return true;
-                    if (fromRow === startRow && rowDiff === 2 * direction && !board[fromRow + direction][fromCol]) return true;
+                    if (fromRow === startRow && rowDiff === 2 * direction && !boardState[fromRow + direction][fromCol]) return true;
                 }
-                // Capture diagonally
                 if (absColDiff === 1 && rowDiff === direction && targetPiece) return true;
                 return false;
 
-            case 'R': // Rook
+            case 'R':
                 if (rowDiff !== 0 && colDiff !== 0) return false;
-                return isPathClear(fromRow, fromCol, toRow, toCol);
+                return isPathClear(boardState, fromRow, fromCol, toRow, toCol);
 
-            case 'N': // Knight
+            case 'N':
                 return (absRowDiff === 2 && absColDiff === 1) || (absRowDiff === 1 && absColDiff === 2);
 
-            case 'B': // Bishop
+            case 'B':
                 if (absRowDiff !== absColDiff) return false;
-                return isPathClear(fromRow, fromCol, toRow, toCol);
+                return isPathClear(boardState, fromRow, fromCol, toRow, toCol);
 
-            case 'Q': // Queen
+            case 'Q':
                 if (rowDiff !== 0 && colDiff !== 0 && absRowDiff !== absColDiff) return false;
-                return isPathClear(fromRow, fromCol, toRow, toCol);
+                return isPathClear(boardState, fromRow, fromCol, toRow, toCol);
 
-            case 'K': // King
+            case 'K':
                 return absRowDiff <= 1 && absColDiff <= 1;
 
             default:
@@ -128,54 +156,80 @@ export default function ChessGame({ navigation }: any) {
         }
     };
 
-    const isPathClear = (fromRow: number, fromCol: number, toRow: number, toCol: number): boolean => {
-        const rowStep = toRow > fromRow ? 1 : toRow < fromRow ? -1 : 0;
-        const colStep = toCol > fromCol ? 1 : toCol < fromCol ? -1 : 0;
-
-        let row = fromRow + rowStep;
-        let col = fromCol + colStep;
-
-        while (row !== toRow || col !== toCol) {
-            if (board[row][col]) return false;
-            row += rowStep;
-            col += colStep;
-        }
-        return true;
-    };
-
-    const getValidMoves = (row: number, col: number): [number, number][] => {
-        const moves: [number, number][] = [];
+    const isKingInCheck = (boardState: (string | null)[][], color: 'w' | 'b'): boolean => {
+        let kingRow = -1, kingCol = -1;
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
-                if (isValidMove(row, col, r, c)) {
-                    moves.push([r, c]);
+                if (boardState[r][c] === `${color}K`) {
+                    kingRow = r; kingCol = c; break;
+                }
+            }
+            if (kingRow !== -1) break;
+        }
+        if (kingRow === -1) return false;
+
+        const oppColor = color === 'w' ? 'b' : 'w';
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                if (boardState[r][c]?.startsWith(oppColor)) {
+                    if (isPseudoLegalMove(boardState, r, c, kingRow, kingCol)) return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    const getValidMoves = (boardState: (string | null)[][], row: number, col: number): [number, number][] => {
+        const piece = boardState[row][col];
+        if (!piece) return [];
+        const color = piece[0] as 'w' | 'b';
+        const moves: [number, number][] = [];
+        
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                if (isPseudoLegalMove(boardState, row, col, r, c)) {
+                    const cloned = boardState.map(rowArr => [...rowArr]);
+                    cloned[r][c] = cloned[row][col];
+                    cloned[row][col] = null;
+                    if (!isKingInCheck(cloned, color)) {
+                        moves.push([r, c]);
+                    }
                 }
             }
         }
         return moves;
     };
 
+    const hasAnyValidMove = (boardState: (string | null)[][], color: 'w' | 'b'): boolean => {
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                if (boardState[r][c]?.startsWith(color)) {
+                    if (getValidMoves(boardState, r, c).length > 0) return true;
+                }
+            }
+        }
+        return false;
+    };
+
     const handleSquarePress = (row: number, col: number) => {
-        if (gameStatus && gameStatus.includes('Wins')) return;
+        if (gameStatus && (gameStatus.includes('Wins') || gameStatus.includes('Draw'))) return;
         const piece = board[row][col];
 
         if (selectedSquare) {
             const [fromRow, fromCol] = selectedSquare;
+            const valid = validMoves.some(([r, c]) => r === row && c === col);
 
-            // Try to move
-            if (isValidMove(fromRow, fromCol, row, col)) {
+            if (valid) {
                 const newBoard = board.map(r => [...r]);
                 const movingPiece = newBoard[fromRow][fromCol];
                 const capturedPiece = newBoard[row][col];
 
-                // Handle capture
                 if (capturedPiece) {
                     if (capturedPiece[0] === 'w') {
                         setCapturedWhite([...capturedWhite, capturedPiece]);
                     } else {
                         setCapturedBlack([...capturedBlack, capturedPiece]);
                     }
-                    // Check for king capture (simplified checkmate)
                     if (capturedPiece[1] === 'K') {
                         setGameStatus(`${currentPlayer === 'w' ? 'White' : 'Black'} Wins!`);
                     }
@@ -184,21 +238,39 @@ export default function ChessGame({ navigation }: any) {
                 newBoard[row][col] = newBoard[fromRow][fromCol];
                 newBoard[fromRow][fromCol] = null;
 
-                // Pawn promotion (auto-queen)
                 if (movingPiece && movingPiece[1] === 'P') {
                     if ((movingPiece[0] === 'w' && row === 0) || (movingPiece[0] === 'b' && row === 7)) {
                         newBoard[row][col] = movingPiece[0] + 'Q';
                     }
                 }
+                
                 setBoard(newBoard);
-                setCurrentPlayer(currentPlayer === 'w' ? 'b' : 'w');
+                
+                // Switch turn and check for mate/check
+                const nextPlayer = currentPlayer === 'w' ? 'b' : 'w';
+                setCurrentPlayer(nextPlayer);
+                
+                const nextPlayerInCheck = isKingInCheck(newBoard, nextPlayer);
+                const nextPlayerHasMoves = hasAnyValidMove(newBoard, nextPlayer);
+
+                if (nextPlayerInCheck) {
+                    setInCheck(nextPlayer);
+                    if (!nextPlayerHasMoves) {
+                        setGameStatus(`${currentPlayer === 'w' ? 'White' : 'Black'} Wins by Checkmate!`);
+                    }
+                } else {
+                    setInCheck(null);
+                    if (!nextPlayerHasMoves) {
+                        setGameStatus("Stalemate! It's a Draw.");
+                    }
+                }
             }
 
             setSelectedSquare(null);
             setValidMoves([]);
         } else if (piece && piece[0] === currentPlayer) {
             setSelectedSquare([row, col]);
-            setValidMoves(getValidMoves(row, col));
+            setValidMoves(getValidMoves(board, row, col));
         }
     };
 
@@ -210,6 +282,7 @@ export default function ChessGame({ navigation }: any) {
         setCapturedBlack([]);
         setGameStatus('');
         setValidMoves([]);
+        setInCheck(null);
     };
 
     const isValidMoveSquare = (row: number, col: number) => {
@@ -231,10 +304,10 @@ export default function ChessGame({ navigation }: any) {
             {/* Split Screen Background Effect */}
             
             {/* Top Half (Black's Side) */}
-            <Animated.View style={[StyleSheet.absoluteFill, { bottom: '50%', overflow: 'hidden', backgroundColor: pureWhite }]}>
+            <Animated.View style={[StyleSheet.absoluteFill, { bottom: '50%', overflow: 'hidden', backgroundColor: inCheck === 'b' ? 'rgba(239, 68, 68, 0.15)' : pureWhite }]}>
                 <Animated.View style={[StyleSheet.absoluteFill, { opacity: turnAnim }]}>
                     <LinearGradient
-                        colors={[darkEdge, pureWhite]}
+                        colors={[inCheck === 'b' ? 'rgba(239, 68, 68, 0.5)' : darkEdge, inCheck === 'b' ? 'rgba(239, 68, 68, 0.05)' : pureWhite]}
                         locations={[0, 0.9]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 0, y: 1 }}
@@ -244,10 +317,10 @@ export default function ChessGame({ navigation }: any) {
             </Animated.View>
 
             {/* Bottom Half (White's Side) */}
-            <Animated.View style={[StyleSheet.absoluteFill, { top: '50%', overflow: 'hidden', backgroundColor: pureWhite }]}>
+            <Animated.View style={[StyleSheet.absoluteFill, { top: '50%', overflow: 'hidden', backgroundColor: inCheck === 'w' ? 'rgba(239, 68, 68, 0.15)' : pureWhite }]}>
                 <Animated.View style={[StyleSheet.absoluteFill, { opacity: whiteTurnOpacity }]}>
                     <LinearGradient
-                        colors={[darkEdge, pureWhite]}
+                        colors={[inCheck === 'w' ? 'rgba(239, 68, 68, 0.5)' : darkEdge, inCheck === 'w' ? 'rgba(239, 68, 68, 0.05)' : pureWhite]}
                         locations={[0, 0.9]}
                         start={{ x: 0, y: 1 }}
                         end={{ x: 0, y: 0 }}
@@ -270,6 +343,11 @@ export default function ChessGame({ navigation }: any) {
                             {capturedBlack.length > 0 ? capturedBlack.map((p, i) => <Text key={i}>{PIECES[p]}</Text>) : '-'}
                         </Text>
                     </View>
+                    {inCheck === 'b' && !gameStatus && (
+                        <View style={[styles.checkWarning, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
+                            <Text style={styles.checkText}>⚠️ CHECK</Text>
+                        </View>
+                    )}
                 </View>
 
             <View style={[styles.boardContainer, { 
@@ -283,11 +361,13 @@ export default function ChessGame({ navigation }: any) {
                                 const isLight = (rowIndex + colIndex) % 2 === 0;
                                 const isSelected = selectedSquare?.[0] === rowIndex && selectedSquare?.[1] === colIndex;
                                 const isValid = isValidMoveSquare(rowIndex, colIndex);
+                                const isKingInCheckSquare = piece === `${inCheck}K`;
 
                                 // Modern board colors
                                 const lightSquare = isDarkMode ? '#6B7280' : '#E5E7EB';
                                 const darkSquare = isDarkMode ? '#374151' : '#9CA3AF';
                                 const selectedColor = 'rgba(234, 186, 68, 0.7)';
+                                const checkColor = 'rgba(239, 68, 68, 0.8)';
 
                                 return (
                                     <TouchableOpacity
@@ -297,7 +377,7 @@ export default function ChessGame({ navigation }: any) {
                                             {
                                                 width: squareSize,
                                                 height: squareSize,
-                                                backgroundColor: isSelected ? selectedColor : (isLight ? lightSquare : darkSquare),
+                                                backgroundColor: isKingInCheckSquare ? checkColor : (isSelected ? selectedColor : (isLight ? lightSquare : darkSquare)),
                                             },
                                         ]}
                                         onPress={() => handleSquarePress(rowIndex, colIndex)}
@@ -333,8 +413,12 @@ export default function ChessGame({ navigation }: any) {
                 </View>
             </View>
 
-            {/* WHITE'S SIDE content */}
             <View style={[styles.playerZone, { backgroundColor: 'transparent', overflow: 'hidden' }]}>
+                {inCheck === 'w' && !gameStatus && (
+                    <View style={[styles.checkWarning, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
+                        <Text style={styles.checkText}>⚠️ CHECK</Text>
+                    </View>
+                )}
                 <View style={[styles.piecesBox, { backgroundColor: badgeBg, borderColor: badgeBorder, marginBottom: 8 }]}>
                     <Text style={[styles.piecesText, { color: textColor }]}>
                         {capturedWhite.length > 0 ? capturedWhite.map((p, i) => <Text key={i}>{PIECES[p]}</Text>) : '-'}
@@ -351,16 +435,18 @@ export default function ChessGame({ navigation }: any) {
 
             {/* Game Over Popup */}
             <Modal
-                visible={gameStatus.includes('Wins')}
+                visible={gameStatus !== ''}
                 transparent
                 animationType="fade"
                 onRequestClose={() => {}}
             >
                 <View style={styles.modalOverlay}>
                     <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
-                        <Text style={styles.modalEmoji}>🏆</Text>
+                        <Text style={styles.modalEmoji}>{gameStatus.includes('Draw') ? '🤝' : '🏆'}</Text>
                         <Text style={[styles.modalTitle, { color: textColor }]}>{gameStatus}</Text>
-                        <Text style={[styles.modalSub, { color: isDarkMode ? '#999' : '#666' }]}>The king has been captured!</Text>
+                        <Text style={[styles.modalSub, { color: isDarkMode ? '#999' : '#666' }]}>
+                            {gameStatus.includes('Checkmate') ? 'The king is trapped!' : (gameStatus.includes('Draw') ? 'No valid moves available.' : 'Game finished')}
+                        </Text>
                         <View style={styles.modalActions}>
                             <TouchableOpacity style={styles.modalPrimaryBtn} onPress={resetGame}>
                                 <Text style={styles.modalPrimaryText}>Play Again</Text>
@@ -389,7 +475,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         paddingHorizontal: 20,
-        paddingTop: 50,
+        paddingTop: 8,
     },
     topHeaderGroup: {
         flexDirection: 'row',
@@ -443,6 +529,21 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         marginBottom: 8,
         alignItems: 'center',
+    },
+    checkWarning: {
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        marginBottom: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.5)',
+    },
+    checkText: {
+        color: '#EF4444',
+        fontSize: 12,
+        fontWeight: '900',
+        letterSpacing: 1,
     },
     namePillText: {
         fontSize: 12,

@@ -27,13 +27,15 @@ export interface BirthdayRecord {
 
 export interface GameRecord {
     id: string;
-    game: 'ludo';
-    winner: string;
-    winnerColor: string;
-    isHumanWinner: boolean;
-    playerCount: number;
-    gameMode: 'passplay' | 'computer';
-    difficulty?: 'easy' | 'medium' | 'hard';
+    game: 'ludo' | 'tictactoe' | 'chess' | '2048' | 'snake' | 'snake_ladder' | 'memory' | 'word_scramble' | string;
+    winner?: string;
+    winnerColor?: string;
+    isHumanWinner?: boolean;
+    playerCount?: number;
+    gameMode?: 'passplay' | 'computer' | 'single' | string;
+    difficulty?: 'easy' | 'medium' | 'hard' | string;
+    score?: number;
+    details?: string;
     dateTime: string;
 }
 

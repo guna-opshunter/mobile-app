@@ -201,7 +201,7 @@ function MainTabs() {
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const insets = useSafeAreaInsets();
 
-  const tabBarHeight = Platform.OS === 'ios' ? 105 + insets.bottom : 93;
+  const tabBarHeight = Platform.OS === 'ios' ? 120 + insets.bottom : 120;
 
   const baseTabBarStyle = {
     backgroundColor: theme.card,
@@ -336,6 +336,10 @@ function AppContent() {
       isFavorite: settings.isFavorite,
       currencyType: settings.currencyType,
       setCurrencyType: settings.setCurrencyType,
+      navigationType: settings.navigationType,
+      setNavigationType: settings.setNavigationType,
+      setupCompleted: settings.setupCompleted,
+      setSetupCompleted: settings.setSetupCompleted,
       isLoading: settings.isLoading,
     }}>
       <RecordsProvider>

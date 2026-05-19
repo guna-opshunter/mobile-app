@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, FlatList, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../theme';
 import { useRecords, getBirthdayCountdown, BMIRecord, BirthdayRecord, GameRecord, QuizRecord, SavedLudoGame } from '../context/RecordsContext';
+import { ms, fp } from '../utils/responsive';
 
 type TabType = 'bmi' | 'birthday' | 'games' | 'quiz' | 'passwords';
 
@@ -333,7 +335,19 @@ export default function RecordsScreen({ navigation }: any) {
                 })}
 
                 {/* Completed Game Records */}
-                {gameRecords.map((record: GameRecord) => (
+                {gameRecords.map((record: GameRecord) => {
+                    let gameTitle = record.game;
+                    let icon = '🎮';
+                    if (record.game === 'ludo') { gameTitle = 'Ludo Match'; icon = '🎲'; }
+                    else if (record.game === 'tictactoe') { gameTitle = 'Tic Tac Toe'; icon = '❌'; }
+                    else if (record.game === 'chess') { gameTitle = 'Chess'; icon = '♟️'; }
+                    else if (record.game === '2048') { gameTitle = '2048'; icon = '🔢'; }
+                    else if (record.game === 'snake') { gameTitle = 'Snake'; icon = '🐍'; }
+                    else if (record.game === 'snake_ladder') { gameTitle = 'Snakes & Ladders'; icon = '🪜'; }
+                    else if (record.game === 'memory') { gameTitle = 'Memory Match'; icon = '🧠'; }
+                    else if (record.game === 'word_scramble') { gameTitle = 'Word Scramble'; icon = '🔤'; }
+
+                    return (
                     <View key={record.id} style={[styles.recordCard, { backgroundColor: theme.card }]}>
                         <View style={styles.recordHeader}>
                             <Text style={[styles.recordDate, { color: theme.textSecondary }]}>{record.dateTime}</Text>
@@ -346,22 +360,42 @@ export default function RecordsScreen({ navigation }: any) {
                         </View>
                         <View style={styles.gameContent}>
                             <View style={[styles.gameIconContainer, { backgroundColor: '#EF444415' }]}>
-                                <Text style={styles.gameIcon}>🎲</Text>
+                                <Text style={styles.gameIcon}>{icon}</Text>
                             </View>
                             <View style={styles.gameDetails}>
-                                <Text style={[styles.gameTitle, { color: theme.text }]}>Ludo Match</Text>
+                                <Text style={[styles.gameTitle, { color: theme.text }]}>{gameTitle}</Text>
+                                
+                                {record.winner && (
                                 <View style={styles.winnerRow}>
-                                    <View style={[styles.colorDot, { backgroundColor: record.winnerColor }]} />
-                                    <Text style={[styles.winnerText, { color: record.winnerColor }]}>
-                                        🏆 {record.winner} {record.isHumanWinner ? 'Won!' : 'Won'}
+                                    {record.winnerColor && <View style={[styles.colorDot, { backgroundColor: record.winnerColor }]} />}
+                                    <Text style={[styles.winnerText, { color: record.winnerColor || theme.text }]}>
+                                        🏆 {record.winner} {record.isHumanWinner !== undefined ? (record.isHumanWinner ? 'Won!' : 'Won') : 'Won!'}
                                     </Text>
                                 </View>
+                                )}
+
+                                {record.score !== undefined && (
+                                <View style={styles.winnerRow}>
+                                    <Text style={[styles.winnerText, { color: theme.text }]}>
+                                        ⭐ Score: {record.score}
+                                    </Text>
+                                </View>
+                                )}
+
+                                {record.details && (
+                                <Text style={[{ color: theme.textSecondary, fontSize: 13, marginBottom: 4 }]}>
+                                    {record.details}
+                                </Text>
+                                )}
+
                                 <View style={styles.gameMetaRow}>
+                                    {record.gameMode && (
                                     <View style={[styles.gameMetaPill, { backgroundColor: theme.surface }]}>
                                         <Text style={[styles.gameInfo, { color: theme.textSecondary }]}>
-                                            {record.gameMode === 'passplay' ? '👥 Pass & Play' : '🤖 vs CPU'}
+                                            {record.gameMode === 'passplay' ? '👥 Pass & Play' : record.gameMode === 'computer' ? '🤖 vs CPU' : record.gameMode === 'single' ? '👤 Single Player' : record.gameMode}
                                         </Text>
                                     </View>
+                                    )}
                                     {record.difficulty && (
                                         <View style={[styles.gameMetaPill, { backgroundColor: theme.surface }]}>
                                             <Text style={[styles.gameInfo, { color: theme.textSecondary }]}>
@@ -373,7 +407,7 @@ export default function RecordsScreen({ navigation }: any) {
                             </View>
                         </View>
                     </View>
-                ))}
+                )})}
             </View>
         );
     };
@@ -424,7 +458,7 @@ export default function RecordsScreen({ navigation }: any) {
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }]} edges={['top']}>
             {/* Header */}
             <View style={styles.headerContainer}>
                 {navigation?.canGoBack?.() && (
@@ -507,7 +541,7 @@ export default function RecordsScreen({ navigation }: any) {
                     />
                 }
             />
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -516,9 +550,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     headerContainer: {
-        paddingHorizontal: 20,
-        paddingTop: 56,
-        paddingBottom: 8,
+        paddingHorizontal: ms(20),
+        paddingTop: ms(8),
+        paddingBottom: ms(8),
     },
     backButton: {
         marginBottom: 12,
@@ -539,13 +573,13 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     title: {
-        fontSize: 32,
+        fontSize: fp(32),
         fontWeight: '800',
         letterSpacing: -0.5,
         marginBottom: 4,
     },
     subtitleText: {
-        fontSize: 15,
+        fontSize: fp(15),
         fontWeight: '500',
     },
     // Tabs

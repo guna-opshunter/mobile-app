@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, ScrollView, useWindowDimensions, Modal } from 'react-native';
 import { useTheme, COLORS } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
+import { useRecords } from '../../context/RecordsContext';
 
 // Dimensions are dynamically calculated inside components for responsiveness.
 
@@ -19,6 +20,7 @@ const WINNING_COMBOS = [
 export default function TicTacToeGame({ navigation }: any) {
     const { isDarkMode } = useTheme();
     const { width } = useWindowDimensions();
+    const { addGameRecord } = useRecords();
     
     // Dynamically calculate responsive maximum width
     const boardWidth = Math.min(width - 40, 420);
@@ -124,6 +126,14 @@ export default function TicTacToeGame({ navigation }: any) {
             setWinLine(line);
             setGameOver(true);
             setScores(prev => ({ ...prev, [w]: prev[w as 'X' | 'O'] + 1 }));
+            addGameRecord({
+                game: 'tictactoe',
+                winner: w === 'X' ? 'Player X' : 'Player O',
+                winnerColor: w === 'X' ? '#EF4444' : '#3B82F6',
+                gameMode: mode === 'ai' ? 'computer' : 'passplay',
+                difficulty: mode === 'ai' ? difficulty : undefined,
+                isHumanWinner: mode === 'ai' ? w === 'X' : true,
+            });
             return;
         }
 
@@ -131,6 +141,12 @@ export default function TicTacToeGame({ navigation }: any) {
             setBoard(newBoard);
             setGameOver(true);
             setScores(prev => ({ ...prev, draw: prev.draw + 1 }));
+            addGameRecord({
+                game: 'tictactoe',
+                details: 'Game ended in a draw.',
+                gameMode: mode === 'ai' ? 'computer' : 'passplay',
+                difficulty: mode === 'ai' ? difficulty : undefined,
+            });
             return;
         }
 
@@ -152,6 +168,14 @@ export default function TicTacToeGame({ navigation }: any) {
                         setWinLine(aiLine);
                         setGameOver(true);
                         setScores(prev => ({ ...prev, O: prev.O + 1 }));
+                        addGameRecord({
+                            game: 'tictactoe',
+                            winner: 'Player O (AI)',
+                            winnerColor: '#3B82F6',
+                            gameMode: 'computer',
+                            difficulty: difficulty,
+                            isHumanWinner: false,
+                        });
                         return;
                     }
 
@@ -159,6 +183,12 @@ export default function TicTacToeGame({ navigation }: any) {
                         setBoard(aiBoard);
                         setGameOver(true);
                         setScores(prev => ({ ...prev, draw: prev.draw + 1 }));
+                        addGameRecord({
+                            game: 'tictactoe',
+                            details: 'Game ended in a draw.',
+                            gameMode: 'computer',
+                            difficulty: difficulty,
+                        });
                         return;
                     }
 
@@ -381,7 +411,7 @@ export default function TicTacToeGame({ navigation }: any) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 20 },
-    backBtn: { marginTop: 40, marginBottom: 10 },
+    backBtn: { marginTop: 8, marginBottom: 10 },
     backBtnBg: {
         alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 10,
         borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 },

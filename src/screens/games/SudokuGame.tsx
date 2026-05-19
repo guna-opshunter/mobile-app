@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { useTheme } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
+import { useRecords } from '../../context/RecordsContext';
 
 const { width } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 40, 360);
@@ -83,6 +84,7 @@ const SOLUTIONS = [
 
 export default function SudokuGame({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
+    const { addGameRecord } = useRecords();
     const [puzzleIndex, setPuzzleIndex] = useState(() => Math.floor(Math.random() * PUZZLES.length));
     const [board, setBoard] = useState<number[][]>([]);
     const [originalBoard, setOriginalBoard] = useState<number[][]>([]);
@@ -113,6 +115,13 @@ export default function SudokuGame({ navigation }: any) {
                 setTimer(t => t + 1);
             }, 1000);
             return () => clearInterval(interval);
+        } else if (isCompleted && timer > 0) {
+            // Save the record when completed
+            addGameRecord({
+                game: 'sudoku',
+                details: `Completed in ${formatTime(timer)} with ${mistakes}/3 mistakes.`,
+                gameMode: 'single'
+            });
         }
     }, [isCompleted]);
 
@@ -450,7 +459,7 @@ const styles = StyleSheet.create({
     },
     backButton: {
         alignSelf: 'flex-start',
-        marginTop: 40,
+        marginTop: 8,
         marginBottom: 10,
     },
     backButtonText: {

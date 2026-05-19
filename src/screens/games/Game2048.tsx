@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useTheme, COLORS } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
+import { useRecords } from '../../context/RecordsContext';
 
 const BOARD_SIZE = 4;
 const TILE_MARGIN = 6;
@@ -168,6 +169,7 @@ const AnimatedTile = ({ cell, tileStyle, tileSize }: { cell: number | null, tile
 export default function Game2048({ navigation }: any) {
     const { isDarkMode } = useTheme();
     const { width: screenWidth } = useWindowDimensions();
+    const { addGameRecord } = useRecords();
     
     const boardWidth = Math.min(screenWidth - 40, 420);
     const tileSize = (boardWidth - BOARD_PADDING * 2 - TILE_MARGIN * (BOARD_SIZE + 1)) / BOARD_SIZE;
@@ -179,6 +181,17 @@ export default function Game2048({ navigation }: any) {
     const [won, setWon] = useState(false);
     const [keepPlaying, setKeepPlaying] = useState(false);
     const [menuVisible, setMenuVisible] = useState(false);
+
+    useEffect(() => {
+        if (gameOver) {
+            addGameRecord({
+                game: '2048',
+                score: score,
+                details: `Final score: ${score}`,
+                gameMode: 'single'
+            });
+        }
+    }, [gameOver]);
 
     const textColor = isDarkMode ? '#F8FAFC' : '#0F172A';
     const subColor = isDarkMode ? '#94A3B8' : '#64748B';

@@ -2,7 +2,7 @@
   "expo": {
     "name": "NexaPlay",
     "slug": "smart-tools-calc-games",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.nexaplay.gamestools",
-      "versionCode": 13,
+      "versionCode": 17,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#3B3B78"

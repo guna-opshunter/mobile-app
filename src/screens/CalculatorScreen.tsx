@@ -8,10 +8,9 @@ const BUTTON_GAP = 10;
 export default function CalculatorScreen({ navigation }: any) {
     const { width } = useWindowDimensions();
     const { isDarkMode, backgroundColor } = useTheme();
-    const [displayValue, setDisplayValue] = useState<string>('0');
-    const [firstOperand, setFirstOperand] = useState<number | null>(null);
-    const [operator, setOperator] = useState<string | null>(null);
-    const [waitingForSecondOperand, setWaitingForSecondOperand] = useState<boolean>(false);
+    const [tokens, setTokens] = useState<string[]>([]);
+    const [result, setResult] = useState<string>('0');
+    const [evaluated, setEvaluated] = useState<boolean>(false);
 
     const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
@@ -21,89 +20,190 @@ export default function CalculatorScreen({ navigation }: any) {
     const buttonSize = Math.min((availableWidth / 4) - BUTTON_GAP, MAX_BUTTON_SIZE);
     const keypadWidth = (buttonSize * 4) + (BUTTON_GAP * 3);
 
+    React.useEffect(() => {
+        if (tokens.length === 0) {
+            setResult('0');
+            return;
+        }
+
+        const expression = tokens.join('');
+        try {
+            const cleanExpr = expression.replace(/[+\-*/]$/, '');
+            if (!cleanExpr) {
+                setResult('0');
+                return;
+            }
+            const evalResult = new Function(`return ${cleanExpr}`)();
+            if (isFinite(evalResult)) {
+                let resStr = String(parseFloat(evalResult.toFixed(10)));
+                setResult(resStr);
+            } else {
+                setResult('Error');
+            }
+        } catch (e) {
+            // Keep previous result if typing is in an invalid intermediate state
+        }
+    }, [tokens]);
+
+    const formatNumber = (numStr: string) => {
+        if (!numStr || numStr === 'Error' || numStr === 'NaN' || numStr === 'Infinity') return numStr;
+        const parts = numStr.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join('.');
+    };
+
+    const formatExpression = (tokensList: string[]) => {
+        return tokensList.map(token => {
+            if (token === '*') return '×';
+            if (token === '/') return '÷';
+            if (token === '-') return '−';
+            if (token === '+') return '+';
+            return formatNumber(token);
+        }).join('');
+    };
+
     const inputDigit = (digit: number) => {
-        if (waitingForSecondOperand || displayValue === 'Error') {
-            setDisplayValue(String(digit));
-            setWaitingForSecondOperand(false);
+        if (evaluated) {
+            setTokens([String(digit)]);
+            setEvaluated(false);
+            return;
+        }
+
+        if (tokens.length === 0) {
+            setTokens([String(digit)]);
+            return;
+        }
+
+        const lastToken = tokens[tokens.length - 1];
+        if (['+', '-', '*', '/'].includes(lastToken)) {
+            setTokens([...tokens, String(digit)]);
         } else {
-            setDisplayValue(displayValue === '0' ? String(digit) : displayValue + digit);
+            if (lastToken === '0') {
+                setTokens([...tokens.slice(0, -1), String(digit)]);
+            } else if (lastToken === '-0') {
+                setTokens([...tokens.slice(0, -1), '-' + String(digit)]);
+            } else {
+                setTokens([...tokens.slice(0, -1), lastToken + digit]);
+            }
         }
     };
 
     const inputDot = () => {
-        if (waitingForSecondOperand || displayValue === 'Error') {
-            setDisplayValue('0.');
-            setWaitingForSecondOperand(false);
+        if (evaluated) {
+            setTokens(['0.']);
+            setEvaluated(false);
             return;
         }
-        if (!displayValue.includes('.')) {
-            setDisplayValue(displayValue + '.');
+
+        if (tokens.length === 0) {
+            setTokens(['0.']);
+            return;
+        }
+
+        const lastToken = tokens[tokens.length - 1];
+        if (['+', '-', '*', '/'].includes(lastToken)) {
+            setTokens([...tokens, '0.']);
+        } else {
+            if (!lastToken.includes('.')) {
+                setTokens([...tokens.slice(0, -1), lastToken + '.']);
+            }
         }
     };
 
     const clearDisplay = () => {
-        setDisplayValue('0');
-        setFirstOperand(null);
-        setOperator(null);
-        setWaitingForSecondOperand(false);
+        setTokens([]);
+        setResult('0');
+        setEvaluated(false);
     };
 
     const backspace = () => {
-        if (waitingForSecondOperand || displayValue === 'Error') return;
+        if (evaluated) {
+            setTokens([]);
+            setResult('0');
+            setEvaluated(false);
+            return;
+        }
 
-        if (displayValue.length > 1) {
-            setDisplayValue(displayValue.slice(0, -1));
+        if (tokens.length === 0) return;
+
+        const lastToken = tokens[tokens.length - 1];
+        if (['+', '-', '*', '/'].includes(lastToken)) {
+            setTokens(tokens.slice(0, -1));
         } else {
-            setDisplayValue('0');
-        }
-    };
-
-    const performOperation = (nextOperator: string) => {
-        if (displayValue === 'Error') return;
-        const inputValue = parseFloat(displayValue);
-
-        if (firstOperand === null) {
-            setFirstOperand(inputValue);
-        } else if (operator) {
-            const currentValue = firstOperand || 0;
-            const newValue = calculate(currentValue, inputValue, operator);
-            setDisplayValue(String(newValue));
-            
-            if (newValue === 'Error') {
-                setFirstOperand(null);
-                setOperator(null);
-                setWaitingForSecondOperand(false);
-                return;
+            if (lastToken.length > 1) {
+                const newToken = lastToken.slice(0, -1);
+                if (newToken === '-' || newToken === '-0') {
+                    setTokens(tokens.slice(0, -1));
+                } else {
+                    setTokens([...tokens.slice(0, -1), newToken]);
+                }
+            } else {
+                setTokens(tokens.slice(0, -1));
             }
-            setFirstOperand(Number(newValue));
         }
-
-        setWaitingForSecondOperand(true);
-        setOperator(nextOperator === '=' ? null : nextOperator);
     };
 
-    const calculate = (first: number, second: number, op: string): number | string => {
-        switch (op) {
-            case '+': return first + second;
-            case '-': return first - second;
-            case '*': return first * second;
-            case '/': 
-                if (second === 0) return 'Error';
-                return first / second;
-            default: return second;
+    const performOperation = (op: string) => {
+        if (op === '=') {
+            setEvaluated(true);
+            return;
+        }
+
+        if (evaluated) {
+            setTokens([result, op]);
+            setEvaluated(false);
+            return;
+        }
+
+        if (tokens.length === 0) {
+            setTokens(['0', op]);
+            return;
+        }
+
+        const lastToken = tokens[tokens.length - 1];
+        if (['+', '-', '*', '/'].includes(lastToken)) {
+            setTokens([...tokens.slice(0, -1), op]);
+        } else {
+            setTokens([...tokens, op]);
         }
     };
 
     const inputPercent = () => {
-        if (displayValue !== 'Error') {
-            const val = parseFloat(displayValue);
-            setDisplayValue(String(val / 100));
+        if (evaluated) {
+            const val = String(parseFloat(result) / 100);
+            setTokens([val]);
+            setResult(val);
+            setEvaluated(false);
+            return;
+        }
+
+        if (tokens.length === 0) return;
+
+        const lastToken = tokens[tokens.length - 1];
+        if (!['+', '-', '*', '/'].includes(lastToken)) {
+            const val = String(parseFloat(lastToken) / 100);
+            setTokens([...tokens.slice(0, -1), val]);
         }
     };
 
     const toggleSign = () => {
-        if (displayValue !== 'Error' && displayValue !== '0') {
-            setDisplayValue(displayValue.startsWith('-') ? displayValue.slice(1) : '-' + displayValue);
+        if (evaluated) {
+            const val = result.startsWith('-') ? result.slice(1) : '-' + result;
+            setTokens([val]);
+            setResult(val);
+            setEvaluated(false);
+            return;
+        }
+
+        if (tokens.length === 0) {
+            setTokens(['-0']);
+            return;
+        }
+
+        const lastToken = tokens[tokens.length - 1];
+        if (!['+', '-', '*', '/'].includes(lastToken)) {
+            const val = lastToken.startsWith('-') ? lastToken.slice(1) : '-' + lastToken;
+            setTokens([...tokens.slice(0, -1), val]);
         }
     };
 
@@ -181,18 +281,22 @@ export default function CalculatorScreen({ navigation }: any) {
             <View style={[styles.calcCard, { width: keypadWidth + 40, backgroundColor: theme.card }]}>
                 {/* Display */}
                 <View style={[styles.display, { width: keypadWidth + 8, backgroundColor: theme.surface }]}>
-                    {operator && (
-                        <Text style={[styles.operatorIndicator, { color: '#F59E0B' }]}>{operator === '*' ? '×' : operator === '/' ? '÷' : operator}</Text>
-                    )}
+                    <Text 
+                        style={[styles.expressionText, { color: theme.text, opacity: 0.6 }]} 
+                        numberOfLines={1} 
+                        adjustsFontSizeToFit
+                    >
+                        {tokens.length > 0 ? formatExpression(tokens) + (evaluated ? ' =' : '') : ''}
+                    </Text>
                     <Text
                         style={[styles.displayText, {
-                            fontSize: displayValue.length > 10 ? 28 : displayValue.length > 7 ? 36 : 46,
+                            fontSize: result.length > 10 ? 32 : result.length > 7 ? 40 : 50,
                             color: theme.text,
                         }]}
                         numberOfLines={1}
                         adjustsFontSizeToFit
                     >
-                        {displayValue}
+                        {formatNumber(result)}
                     </Text>
                 </View>
 
@@ -266,23 +370,24 @@ const styles = StyleSheet.create({
         shadowRadius: 24,
     },
     display: {
-        padding: 24,
+        padding: 32,
         marginBottom: 16,
         alignItems: 'flex-end',
         justifyContent: 'flex-end',
         borderRadius: 20,
-        height: 110,
+        minHeight: 200,
     },
-    operatorIndicator: {
-        fontSize: 16,
-        fontWeight: '700',
-        position: 'absolute',
-        top: 16,
-        left: 20,
+    expressionText: {
+        fontSize: 24,
+        lineHeight: 34,
+        fontWeight: '400',
+        marginBottom: 12,
+        letterSpacing: 1,
     },
     displayText: {
         fontWeight: '300',
         letterSpacing: -1,
+        lineHeight: 60,
     },
     keypad: {
         flexDirection: 'row',

@@ -33,7 +33,7 @@ export default function ScreenHeader({ title, subtitle, showBack, onBack, rightE
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 20,
-        paddingTop: 56,
+        paddingTop: 8,
         paddingBottom: 8,
     },
     topRow: {

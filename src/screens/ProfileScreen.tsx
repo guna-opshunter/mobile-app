@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Linking, TextInput, ScrollView, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Linking, TextInput, ScrollView, Share, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../theme';
 import { useAchievements, ACHIEVEMENTS, Achievement } from '../context/AchievementsContext';
 import { useRecords } from '../context/RecordsContext';
+import { ms, fp, wp, getHorizontalPadding } from '../utils/responsive';
 
 export default function ProfileScreen() {
     const { backgroundColor, setBackgroundColor, userName, setUserName, isDarkMode, setIsDarkMode, currencyType, setCurrencyType } = useTheme();
@@ -55,8 +57,9 @@ export default function ProfileScreen() {
     ];
 
     return (
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
         <ScrollView
-            style={[styles.container, { backgroundColor: theme.bg }]}
+            style={styles.scrollView}
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
         >
@@ -241,6 +244,7 @@ export default function ProfileScreen() {
                     />
                 </View>
 
+
                 {!isDarkMode && (
                     <View style={styles.colorSection}>
                         <Text style={[styles.settingLabel, { color: theme.text, marginBottom: 16 }]}>
@@ -362,6 +366,7 @@ export default function ProfileScreen() {
                 <Text style={[styles.appVersion, { color: theme.textSecondary }]}>Version 1.0.0</Text>
             </View>
         </ScrollView>
+        </SafeAreaView>
     );
 }
 
@@ -369,10 +374,13 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    scrollView: {
+        flex: 1,
+    },
     contentContainer: {
-        padding: 20,
-        paddingTop: 60,
-        paddingBottom: 40,
+        padding: ms(20),
+        paddingTop: ms(16),
+        paddingBottom: ms(40),
     },
     // Header
     header: {
@@ -404,24 +412,24 @@ const styles = StyleSheet.create({
     },
     avatarText: {
         color: 'white',
-        fontSize: 38,
+        fontSize: fp(38),
         fontWeight: '700',
     },
     profileName: {
-        fontSize: 26,
+        fontSize: fp(26),
         fontWeight: '800',
         marginBottom: 4,
         letterSpacing: -0.3,
     },
     subtitle: {
-        fontSize: 15,
+        fontSize: fp(15),
         fontWeight: '500',
     },
     // Cards
     card: {
-        borderRadius: 20,
-        padding: 22,
-        marginBottom: 16,
+        borderRadius: ms(20),
+        padding: ms(20),
+        marginBottom: ms(16),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.06,
@@ -445,7 +453,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
     },
     cardTitle: {
-        fontSize: 18,
+        fontSize: fp(18),
         fontWeight: '700',
         letterSpacing: -0.2,
     },
@@ -453,25 +461,25 @@ const styles = StyleSheet.create({
     statsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 10,
+        gap: ms(10),
     },
     statItem: {
         width: '30%',
         flexGrow: 1,
         alignItems: 'center',
-        paddingVertical: 14,
-        borderRadius: 14,
+        paddingVertical: ms(14),
+        borderRadius: ms(14),
     },
     statEmoji: {
-        fontSize: 20,
-        marginBottom: 6,
+        fontSize: fp(20),
+        marginBottom: ms(6),
     },
     statValue: {
-        fontSize: 20,
+        fontSize: fp(20),
         fontWeight: '800',
     },
     statLabel: {
-        fontSize: 10,
+        fontSize: fp(10),
         fontWeight: '600',
         marginTop: 2,
     },
@@ -519,11 +527,11 @@ const styles = StyleSheet.create({
     },
     badge: {
         alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 10,
-        borderRadius: 12,
+        paddingVertical: ms(10),
+        paddingHorizontal: ms(10),
+        borderRadius: ms(12),
         borderWidth: 1.5,
-        minWidth: 72,
+        minWidth: ms(70),
     },
     badgeIcon: {
         fontSize: 22,

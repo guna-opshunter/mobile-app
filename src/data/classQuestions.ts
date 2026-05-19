@@ -499,5 +499,19 @@ export const QUESTION_POOLS: Record<number, Question[]> = {
 // Utility: shuffle and pick N random questions from a pool
 export function getRandomQuestions(questions: Question[], count: number): Question[] {
     const shuffled = [...questions].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, Math.min(count, shuffled.length));
+    const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+    
+    return selected.map(q => {
+        const optionsWithStatus = q.options.map((opt, idx) => ({ 
+            text: opt, 
+            isCorrect: idx === q.correct 
+        }));
+        optionsWithStatus.sort(() => Math.random() - 0.5);
+        
+        return {
+            ...q,
+            options: optionsWithStatus.map(o => o.text),
+            correct: optionsWithStatus.findIndex(o => o.isCorrect)
+        };
+    });
 }
