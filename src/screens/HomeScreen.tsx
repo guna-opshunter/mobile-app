@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../theme';
 import SoundEffects from '../utils/sounds';
 import { ms, fp, wp, getHorizontalPadding } from '../utils/responsive';
+import AdBanner from '../components/AdBanner';
 
 // Static data arrays moved outside component to prevent re-creation on every render
 const calculators = [
@@ -428,6 +429,9 @@ export default function HomeScreen({ navigation }: any) {
                             <Text style={[{ fontSize: 14, color: theme.textSecondary, marginTop: 4 }]}>Try a different search term</Text>
                         </View>
                     )}
+
+                    {/* Ad Banner */}
+                    <AdBanner />
 
                     <View style={styles.footerSpace} />
                 </ScrollView>

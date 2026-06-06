@@ -1,8 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, ScrollView, useWindowDimensions, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
 import { useRecords } from '../../context/RecordsContext';
+import AdBanner from '../../components/AdBanner';
 
 // Dimensions are dynamically calculated inside components for responsiveness.
 
@@ -218,7 +220,8 @@ export default function TicTacToeGame({ navigation }: any) {
     // Mode select screen
     if (mode === null) {
         return (
-            <ScrollView style={[styles.container, { backgroundColor: containerBg }]} contentContainerStyle={{ maxWidth: 600, alignSelf: 'center', width: '100%', flexGrow: 1 }}>
+            <SafeAreaView style={[{ flex: 1 }, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
+            <ScrollView style={[styles.container]} contentContainerStyle={{ maxWidth: 600, alignSelf: 'center', width: '100%', flexGrow: 1 }}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
                     <View style={[styles.backBtnBg, { backgroundColor: cardBg }]}>
                         <Text style={[styles.backBtnText, { color: COLORS.primary }]}>← Back</Text>
@@ -279,12 +282,15 @@ export default function TicTacToeGame({ navigation }: any) {
                         </View>
                     </View>
                 </View>
+                <AdBanner />
             </ScrollView>
+            </SafeAreaView>
         );
     }
 
     return (
-        <ScrollView style={[styles.container, { backgroundColor: containerBg }]} contentContainerStyle={{ maxWidth: 600, alignSelf: 'center', width: '100%', flexGrow: 1, paddingBottom: 40 }}>
+        <SafeAreaView style={[{ flex: 1 }, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
+        <ScrollView style={[styles.container]} contentContainerStyle={{ maxWidth: 600, alignSelf: 'center', width: '100%', flexGrow: 1, paddingBottom: 40 }}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setMenuVisible(true)}>
                 <View style={[styles.backBtnBg, { backgroundColor: cardBg }]}>
                     <Text style={[styles.backBtnText, { color: COLORS.primary }]}>⚙️ Menu</Text>
@@ -405,7 +411,9 @@ export default function TicTacToeGame({ navigation }: any) {
                 onSaveAndQuit={() => navigation.goBack()} 
                 onQuit={() => navigation.goBack()} 
             />
+            <AdBanner />
         </ScrollView>
+        </SafeAreaView>
     );
 }
 

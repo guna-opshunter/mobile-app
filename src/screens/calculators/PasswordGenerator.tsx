@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, TextInput, ToastAndroid, Platform, Alert, Animated, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../../theme';
 import { useRecords } from '../../context/RecordsContext';
+import AdBanner from '../../components/AdBanner';
 
 export default function PasswordGenerator({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
@@ -117,7 +119,8 @@ export default function PasswordGenerator({ navigation }: any) {
     };
 
     return (
-        <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }]}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }} edges={['top', 'bottom']}>
+        <ScrollView style={[styles.container]}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <View style={[styles.backButtonBg, { backgroundColor: theme.card }]}>
                     <Text style={[styles.backButtonText, { color: COLORS.primary }]}>← Back</Text>
@@ -252,7 +255,9 @@ export default function PasswordGenerator({ navigation }: any) {
                     </View>
                 </TouchableOpacity>
             </Modal>
+        <AdBanner />
         </ScrollView>
+        </SafeAreaView>
     );
 }
 

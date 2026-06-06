@@ -3,9 +3,11 @@ import {
     View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert,
     PanResponder, Animated, useWindowDimensions
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
 import { useRecords } from '../../context/RecordsContext';
+import AdBanner from '../../components/AdBanner';
 
 const BOARD_SIZE = 4;
 const TILE_MARGIN = 6;
@@ -265,7 +267,7 @@ export default function Game2048({ navigation }: any) {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: containerBg }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setMenuVisible(true)}>
                 <View style={[styles.backBtnBg, { backgroundColor: cardBg }]}>
                     <Text style={[styles.backBtnText, { color: textColor }]}>Menu</Text>
@@ -310,34 +312,6 @@ export default function Game2048({ navigation }: any) {
                 )}
             </View>
 
-            {/* Tap controls for accessibility */}
-            <View style={styles.tapControls}>
-                <View style={styles.tapRow}>
-                    <View style={styles.tapSpacer} />
-                    <TouchableOpacity style={[styles.tapBtn, { backgroundColor: cardBg }]} onPress={() => handleMove('up')}>
-                        <Text style={[styles.tapArrow, { color: '#BBADA0' }]}>▲</Text>
-                    </TouchableOpacity>
-                    <View style={styles.tapSpacer} />
-                </View>
-                <View style={styles.tapRow}>
-                    <TouchableOpacity style={[styles.tapBtn, { backgroundColor: cardBg }]} onPress={() => handleMove('left')}>
-                        <Text style={[styles.tapArrow, { color: '#BBADA0' }]}>◀</Text>
-                    </TouchableOpacity>
-                    <View style={[styles.tapCenter, { backgroundColor: '#BBADA020' }]}>
-                        <Text style={{ fontSize: 18 }}>🎯</Text>
-                    </View>
-                    <TouchableOpacity style={[styles.tapBtn, { backgroundColor: cardBg }]} onPress={() => handleMove('right')}>
-                        <Text style={[styles.tapArrow, { color: '#BBADA0' }]}>▶</Text>
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.tapRow}>
-                    <View style={styles.tapSpacer} />
-                    <TouchableOpacity style={[styles.tapBtn, { backgroundColor: cardBg }]} onPress={() => handleMove('down')}>
-                        <Text style={[styles.tapArrow, { color: '#BBADA0' }]}>▼</Text>
-                    </TouchableOpacity>
-                    <View style={styles.tapSpacer} />
-                </View>
-            </View>
 
             {/* Win overlay */}
             {won && !keepPlaying && (
@@ -388,7 +362,8 @@ export default function Game2048({ navigation }: any) {
                 onSaveAndQuit={() => navigation.goBack()} 
                 onQuit={() => navigation.goBack()} 
             />
-        </View>
+        <AdBanner />
+        </SafeAreaView>
     );
 }
 
@@ -431,19 +406,9 @@ const styles = StyleSheet.create({
         borderRadius: 10, justifyContent: 'center', alignItems: 'center',
     },
     tileText: { fontWeight: '900' },
-    // Tap controls
-    tapControls: { alignSelf: 'center', marginTop: 30, gap: 6 },
-    tapRow: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
-    tapSpacer: { width: 60, height: 60 },
-    tapBtn: {
-        width: 60, height: 60, borderRadius: 18, justifyContent: 'center', alignItems: 'center',
-        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 4,
-    },
-    tapArrow: { fontSize: 22, fontWeight: '800' },
-    tapCenter: { width: 60, height: 60, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
     // Overlays
     overlay: {
-        ...StyleSheet.absoluteFillObject,
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0,0,0,0.6)',
         justifyContent: 'center', alignItems: 'center',
         zIndex: 100,

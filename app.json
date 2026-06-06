@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "nexaplay",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#3B3B78"
-    },
     "ios": {
       "bundleIdentifier": "com.nexaplay.gamestools",
       "buildNumber": "1",
@@ -19,7 +14,7 @@
     },
     "android": {
       "package": "com.nexaplay.gamestools",
-      "versionCode": 17,
+      "versionCode": 21,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#3B3B78"
@@ -38,13 +33,27 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#3B3B78"
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ]
     ],
     "extra": {
       "eas": {
-        "projectId": "841d1417-4f91-424c-b489-a844e8499072"
+        "projectId": "98a19efc-9b39-489a-9e16-8fba3e318672"
       }
     },
-    "owner": "guna4562"
+    "owner": "nexaplay"
   }
 }

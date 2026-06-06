@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Alert, useWindowDimensions, Modal, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRecords } from '../../context/RecordsContext';
+import AdBanner from '../../components/AdBanner';
 // Board config is calculated dynamically based on screen width
 
 // Chess pieces as Unicode characters
@@ -290,7 +292,7 @@ export default function ChessGame({ navigation }: any) {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: pureWhite }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: pureWhite }]} edges={['top', 'bottom']}>
             {/* Navigation and Reset Floating Menus */}
             <TouchableOpacity 
                 style={[styles.floatingNavBtn, { left: 20, top: 40, backgroundColor: isDarkMode ? 'rgba(50,50,50,0.8)' : 'rgba(255,255,255,0.8)' }]} 
@@ -466,8 +468,9 @@ export default function ChessGame({ navigation }: any) {
                 onQuit={() => navigation.goBack()} 
             />
 
+        <AdBanner />
         </ScrollView>
-    </View>
+    </SafeAreaView>
     );
 }
 

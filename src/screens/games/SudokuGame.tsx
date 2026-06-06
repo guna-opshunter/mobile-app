@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
 import { useRecords } from '../../context/RecordsContext';
+import AdBanner from '../../components/AdBanner';
 
 const { width } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 40, 360);
@@ -307,7 +309,7 @@ export default function SudokuGame({ navigation }: any) {
 
     if (isCompleted) {
         return (
-            <View style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : backgroundColor }]}>
+            <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : backgroundColor }]} edges={['top', 'bottom']}>
                 <TouchableOpacity style={styles.backButton} onPress={() => setMenuVisible(true)}>
                     <Text style={[styles.backButtonText, { color: isDarkMode ? '#646cff' : '#0056b3' }]}>⚙️ Menu</Text>
                 </TouchableOpacity>
@@ -324,12 +326,12 @@ export default function SudokuGame({ navigation }: any) {
                         <Text style={styles.playAgainButtonText}>🔄 New Game</Text>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </SafeAreaView>
         );
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : backgroundColor }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : backgroundColor }]} edges={['top', 'bottom']}>
             <TouchableOpacity style={styles.backButton} onPress={() => setMenuVisible(true)}>
                 <Text style={[styles.backButtonText, { color: isDarkMode ? '#646cff' : '#0056b3' }]}>⚙️ Menu</Text>
             </TouchableOpacity>
@@ -447,7 +449,8 @@ export default function SudokuGame({ navigation }: any) {
                 onSaveAndQuit={() => navigation.goBack()} 
                 onQuit={() => navigation.goBack()} 
             />
-        </View>
+        <AdBanner />
+        </SafeAreaView>
     );
 }
 

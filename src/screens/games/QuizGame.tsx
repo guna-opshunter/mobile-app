@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Animated, Share } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { CLASS_LEVELS, ClassLevel, QuestionSet, QUESTION_POOLS, getRandomQuestions } from '../../data/classQuestions';
 import { useRecords } from '../../context/RecordsContext';
 import { useAchievements } from '../../context/AchievementsContext';
+import AdBanner from '../../components/AdBanner';
 
 const { width } = Dimensions.get('window');
 
@@ -215,7 +217,8 @@ export default function QuizGame({ navigation }: any) {
     // Level Selection Screen
     if (screen === 'levels') {
         return (
-            <ScrollView style={[styles.container, { backgroundColor: containerBg }]} showsVerticalScrollIndicator={false}>
+            <SafeAreaView style={[styles.container, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                 <View style={styles.header}>
                     <Text style={styles.titleEmoji}>📚</Text>
                     <Text style={[styles.title, { color: textColor }]}>Knowledge Quiz</Text>
@@ -251,13 +254,15 @@ export default function QuizGame({ navigation }: any) {
                     })}
                 </View>
             </ScrollView>
+            </SafeAreaView>
         );
     }
 
     // Sets Selection Screen
     if (screen === 'sets' && selectedLevel) {
         return (
-            <ScrollView style={[styles.container, { backgroundColor: containerBg }]} showsVerticalScrollIndicator={false}>
+            <SafeAreaView style={[styles.container, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                 <View style={styles.setsHeader}>
                     <TouchableOpacity style={styles.backBtn} onPress={backToLevels}>
                         <Text style={[styles.backIcon, { color: subtitleColor }]}>←</Text>
@@ -302,6 +307,7 @@ export default function QuizGame({ navigation }: any) {
                     })}
                 </View>
             </ScrollView>
+            </SafeAreaView>
         );
     }
 
@@ -314,7 +320,7 @@ export default function QuizGame({ navigation }: any) {
         else if (percentage < 80) grade = { letter: '⭐', text: 'Great Job!', color: '#10B981', bg: '#D1FAE5' };
 
         return (
-            <View style={[styles.container, { backgroundColor: containerBg }]}>
+            <SafeAreaView style={[styles.container, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
                 <ScrollView contentContainerStyle={styles.resultScroll} showsVerticalScrollIndicator={false}>
                     {isNewHighScore && (
                         <View style={styles.newHighScoreBanner}>
@@ -387,7 +393,7 @@ export default function QuizGame({ navigation }: any) {
                         <Text style={[styles.levelLinkText, { color: subtitleColor }]}>← All Levels</Text>
                     </TouchableOpacity>
                 </ScrollView>
-            </View>
+            </SafeAreaView>
         );
     }
 
@@ -398,7 +404,7 @@ export default function QuizGame({ navigation }: any) {
     const progress = ((currentQuestion) / selectedSet.questions.length) * 100;
 
     return (
-        <View style={[styles.container, { backgroundColor: containerBg }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
             {/* Header */}
             <View style={styles.gameHeader}>
                 <TouchableOpacity style={styles.backBtn} onPress={backToSets}>
@@ -502,8 +508,9 @@ export default function QuizGame({ navigation }: any) {
                         ))}
                     </View>
                 </Animated.View>
-            </ScrollView>
-        </View>
+            <AdBanner />
+        </ScrollView>
+        </SafeAreaView>
     );
 }
 

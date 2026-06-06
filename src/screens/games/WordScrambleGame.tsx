@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Keyboard, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
+import AdBanner from '../../components/AdBanner';
 
 const WORDS = [
     { word: 'ELEPHANT', hint: 'The giant of the savannah with a very long nose' },
@@ -75,6 +76,20 @@ const shuffleArray = (array: any[]) => {
     return newArr;
 };
 
+let playedWordsHistory: string[] = [];
+
+const selectGameWords = (): any[] => {
+    let availableWords = WORDS.filter(w => !playedWordsHistory.includes(w.word));
+    if (availableWords.length < 15) {
+        // Keep the last 15 words in history to avoid consecutive repeats
+        playedWordsHistory = playedWordsHistory.slice(-15);
+        availableWords = WORDS.filter(w => !playedWordsHistory.includes(w.word));
+    }
+    const selected = shuffleArray(availableWords).slice(0, 15);
+    playedWordsHistory = [...playedWordsHistory, ...selected.map(w => w.word)];
+    return selected;
+};
+
 export default function WordScrambleGame({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
     const insets = useSafeAreaInsets();
@@ -92,7 +107,7 @@ export default function WordScrambleGame({ navigation }: any) {
     const [menuVisible, setMenuVisible] = useState(false);
 
     useEffect(() => {
-        setGameWords(shuffleArray(WORDS).slice(0, 15));
+        setGameWords(selectGameWords());
     }, []);
 
     const textColor = isDarkMode ? '#ffffff' : '#1a1a2e';
@@ -175,7 +190,7 @@ export default function WordScrambleGame({ navigation }: any) {
     };
 
     const restartGame = () => {
-        setGameWords(shuffleArray(WORDS).slice(0, 15));
+        setGameWords(selectGameWords());
         setCurrentWordIndex(0);
         setScore(0);
         setStreak(0);
@@ -196,7 +211,7 @@ export default function WordScrambleGame({ navigation }: any) {
     if (gameOver) {
         const performance = getPerformance();
         return (
-            <View style={[styles.container, { backgroundColor: containerBg }]}>
+            <SafeAreaView style={[styles.container, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
                 <View style={styles.gameOverContainer}>
                     <View style={[styles.performanceCircle, { backgroundColor: performance.color + '20', borderColor: performance.color }]}>
                         <Text style={styles.performanceEmoji}>{performance.emoji}</Text>
@@ -221,7 +236,7 @@ export default function WordScrambleGame({ navigation }: any) {
                         <Text style={styles.playAgainButtonText}>🔄 Play Again</Text>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </SafeAreaView>
         );
     }
 
@@ -351,6 +366,7 @@ export default function WordScrambleGame({ navigation }: any) {
                         </TouchableOpacity>
                     </View>
                 </View>
+                <AdBanner />
                 <View style={{ height: 20 }} />
             </ScrollView>
             

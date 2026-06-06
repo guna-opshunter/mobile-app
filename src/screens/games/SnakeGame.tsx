@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import SoundEffects from '../../utils/sounds';
 import GameMenuModal from '../../components/GameMenuModal';
+import AdBanner from '../../components/AdBanner';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(SCREEN_WIDTH - 40, 380);
@@ -160,7 +162,7 @@ export default function SnakeGame({ navigation }: any) {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: bgColor }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={['top', 'bottom']}>
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => {
                     if (!isPaused && !isGameOver) setIsPaused(true);
@@ -283,7 +285,8 @@ export default function SnakeGame({ navigation }: any) {
                 onSaveAndQuit={() => navigation.goBack()} 
                 onQuit={() => navigation.goBack()} 
             />
-        </View>
+        <AdBanner />
+        </SafeAreaView>
     );
 }
 
@@ -360,7 +363,7 @@ const styles = StyleSheet.create({
         elevation: 10,
     },
     gridOverlay: {
-        ...StyleSheet.absoluteFillObject,
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     },
     gridLineVertical: {
         position: 'absolute',
@@ -412,7 +415,7 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
     overlay: {
-        ...StyleSheet.absoluteFillObject,
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(5, 11, 20, 0.85)',
         justifyContent: 'center',
         alignItems: 'center',

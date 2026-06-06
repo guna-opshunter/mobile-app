@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Keyboard } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../../theme';
+import AdBanner from '../../components/AdBanner';
 
 const SHAPES_2D = ['Square', 'Circle', 'Triangle', 'Rectangle'];
 const SHAPES_3D = ['Cube', 'Sphere', 'Cylinder', 'Rectangular Prism'];
@@ -78,7 +80,8 @@ export default function AreaCalculator({ navigation }: any) {
     };
 
     return (
-        <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }]}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }} edges={['top', 'bottom']}>
+        <ScrollView style={[styles.container]}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <View style={[styles.backButtonBg, { backgroundColor: theme.card }]}>
                     <Text style={[styles.backButtonText, { color: COLORS.primary }]}>← Back</Text>
@@ -152,7 +155,9 @@ export default function AreaCalculator({ navigation }: any) {
             )}
 
             <View style={{ height: 40 }} />
+        <AdBanner />
         </ScrollView>
+        </SafeAreaView>
     );
 }
 

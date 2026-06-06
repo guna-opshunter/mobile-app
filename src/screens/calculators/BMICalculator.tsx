@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../../theme';
 import { useRecords } from '../../context/RecordsContext';
 import { ms, fp } from '../../utils/responsive';
+import AdBanner from '../../components/AdBanner';
 
 export default function BMICalculator({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
@@ -67,7 +68,7 @@ export default function BMICalculator({ navigation }: any) {
     };
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }]} edges={['top']}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }]} edges={['top', 'bottom']}>
         <ScrollView style={styles.container}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <View style={[styles.backButtonBg, { backgroundColor: theme.card }]}>
@@ -176,6 +177,7 @@ export default function BMICalculator({ navigation }: any) {
             )}
 
             <View style={{ height: 40 }} />
+        <AdBanner />
         </ScrollView>
         </SafeAreaView>
     );

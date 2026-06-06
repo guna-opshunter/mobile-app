@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, ScrollView, Animated, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, ScrollView, Animated, Share, Easing } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { useRecords } from '../../context/RecordsContext';
 import { useAchievements } from '../../context/AchievementsContext';
 import GameMenuModal from '../../components/GameMenuModal';
 import { LinearGradient } from 'expo-linear-gradient';
+import AdBanner from '../../components/AdBanner';
 
 const { width, height } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 24, height * 0.48); // ~70% feel, fits with dice panels
@@ -137,7 +139,18 @@ export default function LudoGame({ navigation, route }: any) {
 
     const diceRotation = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
+    const pulseAnimRef = useRef<Animated.CompositeAnimation | null>(null);
     const diceScale = useRef(new Animated.Value(1)).current;
+
+    // Animated turn badge background color
+    const turnBadgeAnim = useRef(new Animated.Value(0)).current;
+    const prevPlayerRef = useRef(0);
+    const turnBadgeColor = useRef(new Animated.Value(currentPlayer)).current;
+
+    // Animated message fade
+    const messageOpacity = useRef(new Animated.Value(0)).current;
+    const messageScale = useRef(new Animated.Value(0.8)).current;
+    const prevMessageRef = useRef<string | null>(null);
 
     // Animated positions for each token on the board (4 players x 4 tokens)
     const tokenAnims = useRef<Animated.ValueXY[][]>(
@@ -156,6 +169,10 @@ export default function LudoGame({ navigation, route }: any) {
     const tokenInitialized = useRef<boolean[][]>(
         Array.from({ length: 4 }, () => [false, false, false, false])
     );
+
+    // Dice panel opacity animation (smooth fade between top/bottom)
+    const dicePanelTopOpacity = useRef(new Animated.Value(currentPlayer === 1 || currentPlayer === 2 ? 1 : 0)).current;
+    const dicePanelBottomOpacity = useRef(new Animated.Value(currentPlayer === 0 || currentPlayer === 3 ? 1 : 0)).current;
 
     // Dice position animation (slides between side and bottom)
     const dicePositionAnim = useRef(new Animated.Value(0)).current; // 0 = bottom, 1 = right side
@@ -176,6 +193,24 @@ export default function LudoGame({ navigation, route }: any) {
             tension: 80,
             useNativeDriver: false,
         }).start();
+
+        // Smooth dice panel fade
+        const topTarget = isDiceTop ? 1 : 0;
+        const bottomTarget = isDiceTop ? 0 : 1;
+        Animated.parallel([
+            Animated.timing(dicePanelTopOpacity, {
+                toValue: topTarget,
+                duration: 350,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: true,
+            }),
+            Animated.timing(dicePanelBottomOpacity, {
+                toValue: bottomTarget,
+                duration: 350,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: true,
+            }),
+        ]).start();
     }, [currentPlayer]);
 
     // Background Gradients Opacities
@@ -187,26 +222,44 @@ export default function LudoGame({ navigation, route }: any) {
     ]).current;
 
     useEffect(() => {
-        bgOpacities.forEach((anim, index) => {
-            Animated.timing(anim, {
-                toValue: currentPlayer === index ? 1 : 0,
-                duration: 600,
-                useNativeDriver: false,
-            }).start();
-        });
+        Animated.parallel(
+            bgOpacities.map((anim, index) =>
+                Animated.timing(anim, {
+                    toValue: currentPlayer === index ? 1 : 0,
+                    duration: 800,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: false,
+                })
+            )
+        ).start();
     }, [currentPlayer]);
 
     useEffect(() => {
         const newPlayers: PlayerConfig[] = [];
         for (let i = 0; i < 4; i++) {
-            if (i < playerCount) {
-                if (playMode === 'passplay') {
-                    newPlayers.push({ isComputer: false, active: true });
+            if (playerCount === 2) {
+                // For 2 players, use Red (0) and Yellow (2) as active so they are on opposite sides
+                if (i === 0 || i === 2) {
+                    if (playMode === 'passplay') {
+                        newPlayers.push({ isComputer: false, active: true });
+                    } else {
+                        // User is Red (0), Computer is Yellow (2)
+                        newPlayers.push({ isComputer: i === 2, active: true });
+                    }
                 } else {
-                    newPlayers.push({ isComputer: i > 0, active: true });
+                    newPlayers.push({ isComputer: true, active: false });
                 }
             } else {
-                newPlayers.push({ isComputer: true, active: false });
+                // For 3 or 4 players, active is determined sequentially
+                if (i < playerCount) {
+                    if (playMode === 'passplay') {
+                        newPlayers.push({ isComputer: false, active: true });
+                    } else {
+                        newPlayers.push({ isComputer: i > 0, active: true });
+                    }
+                } else {
+                    newPlayers.push({ isComputer: true, active: false });
+                }
             }
         }
         setPlayers(newPlayers);
@@ -252,19 +305,102 @@ export default function LudoGame({ navigation, route }: any) {
         const playerTokens = tokens[playerIndex];
         const validMoves: { tokenIndex: number; score: number }[] = [];
 
+        // Safe cells on the board (stars + start positions) — captures can't happen here
+        const safeCells: [number, number][] = [
+            [8, 2], [2, 6], [6, 12], [12, 8],   // star cells
+            [13, 6], [6, 1], [1, 8], [8, 13],    // start cells
+        ];
+        const isSafeCell = (coords: [number, number] | null) =>
+            coords !== null && safeCells.some(s => s[0] === coords[0] && s[1] === coords[1]);
+
+        // Check if an opponent token sits at given board coords
+        const hasOpponentAt = (coords: [number, number] | null): boolean => {
+            if (!coords) return false;
+            for (let op = 0; op < 4; op++) {
+                if (op === playerIndex || !players[op].active) continue;
+                for (let ot = 0; ot < 4; ot++) {
+                    const opToken = tokens[op][ot];
+                    if (opToken.position < 0 || opToken.position >= 51) continue;
+                    const opCoords = getTokenBoardPosition(op, opToken.position);
+                    if (opCoords && opCoords[0] === coords[0] && opCoords[1] === coords[1]) return true;
+                }
+            }
+            return false;
+        };
+
+        // Check if an opponent could reach the given position in a single roll (1-6)
+        const isInDanger = (coords: [number, number] | null): boolean => {
+            if (!coords || isSafeCell(coords)) return false;
+            for (let op = 0; op < 4; op++) {
+                if (op === playerIndex || !players[op].active) continue;
+                for (let ot = 0; ot < 4; ot++) {
+                    const opToken = tokens[op][ot];
+                    if (opToken.position < 0 || opToken.position >= 51) continue;
+                    for (let d = 1; d <= 6; d++) {
+                        const futurePos = opToken.position + d;
+                        if (futurePos > 50) continue;
+                        const futureCoords = getTokenBoardPosition(op, futurePos);
+                        if (futureCoords && futureCoords[0] === coords[0] && futureCoords[1] === coords[1]) return true;
+                    }
+                }
+            }
+            return false;
+        };
+
         playerTokens.forEach((token, index) => {
             if (token.position === -1 && dice === 6) {
+                // Deploy a new token from home base
                 let score = 50;
-                if (difficulty === 'hard') score += 20;
+                if (difficulty === 'hard') {
+                    // Deploy is smart when fewer tokens are on the board
+                    const onBoard = playerTokens.filter(t => t.position >= 0 && t.position < 56).length;
+                    if (onBoard < 2) score += 15; // encourage getting pieces out early
+                }
                 validMoves.push({ tokenIndex: index, score });
             } else if (token.position >= 0 && token.position < 57) {
                 const newPos = token.position + dice;
                 if (newPos <= 56) {
                     let score = 10;
+
+                    // Reaching home is always top priority
                     if (newPos === 56) score += 100;
-                    if (difficulty !== 'easy') score += token.position;
-                    if (difficulty === 'hard') score += newPos * 2;
-                    if (difficulty === 'easy') score += Math.random() * 30;
+
+                    if (difficulty === 'easy') {
+                        // Easy: add randomness so it plays unpredictably
+                        score += Math.random() * 30;
+                    } else {
+                        // Medium & Hard: prefer progressing tokens that are further along
+                        score += Math.floor(token.position / 5);
+
+                        // Entering home lane (positions 51-55) is safe and valuable
+                        if (newPos >= 51 && token.position < 51) score += 25;
+                    }
+
+                    if (difficulty === 'hard') {
+                        const newCoords = newPos < 56 ? getTokenBoardPosition(playerIndex, newPos) : null;
+                        const curCoords = getTokenBoardPosition(playerIndex, token.position);
+
+                        // Capture opportunity: big bonus (also gives a bonus turn)
+                        if (newPos < 51 && hasOpponentAt(newCoords)) {
+                            score += 40;
+                        }
+
+                        // Escape danger: moving away from a threatened cell
+                        if (isInDanger(curCoords) && !isInDanger(newCoords)) {
+                            score += 20;
+                        }
+
+                        // Landing on a safe cell is a modest bonus
+                        if (isSafeCell(newCoords)) {
+                            score += 8;
+                        }
+
+                        // Slight penalty for landing on a dangerous cell
+                        if (newPos < 51 && isInDanger(newCoords) && !isSafeCell(newCoords)) {
+                            score -= 10;
+                        }
+                    }
+
                     validMoves.push({ tokenIndex: index, score });
                 }
             }
@@ -276,7 +412,7 @@ export default function LudoGame({ navigation, route }: any) {
             return validMoves[Math.floor(Math.random() * validMoves.length)].tokenIndex;
         }
         return validMoves[0].tokenIndex;
-    }, [tokens, difficulty]);
+    }, [tokens, difficulty, players]);
 
     useEffect(() => {
         if (gameMode !== 'playing' || winner !== null) return;
@@ -307,20 +443,81 @@ export default function LudoGame({ navigation, route }: any) {
 
     useEffect(() => {
         if (movableTokens.length > 0) {
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(pulseAnim, { toValue: 1.15, duration: 400, useNativeDriver: true }),
-                    Animated.timing(pulseAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-                ])
-            ).start();
-        } else {
+            // Stop previous pulse cleanly before starting new one
+            if (pulseAnimRef.current) {
+                pulseAnimRef.current.stop();
+            }
             pulseAnim.setValue(1);
+            const anim = Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 1.18,
+                        duration: 500,
+                        easing: Easing.inOut(Easing.ease),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 500,
+                        easing: Easing.inOut(Easing.ease),
+                        useNativeDriver: true,
+                    }),
+                ])
+            );
+            pulseAnimRef.current = anim;
+            anim.start();
+        } else {
+            if (pulseAnimRef.current) {
+                pulseAnimRef.current.stop();
+                pulseAnimRef.current = null;
+            }
+            // Ease back to 1 instead of snapping
+            Animated.timing(pulseAnim, {
+                toValue: 1,
+                duration: 150,
+                useNativeDriver: true,
+            }).start();
         }
-    }, [movableTokens, pulseAnim]);
+    }, [movableTokens]);
 
+    // Animated message fade in/out
     useEffect(() => {
         if (message) {
-            const timer = setTimeout(() => setMessage(null), 2000);
+            // Fade in
+            messageOpacity.setValue(0);
+            messageScale.setValue(0.85);
+            Animated.parallel([
+                Animated.timing(messageOpacity, {
+                    toValue: 1,
+                    duration: 250,
+                    easing: Easing.out(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+                Animated.spring(messageScale, {
+                    toValue: 1,
+                    friction: 6,
+                    tension: 120,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+            prevMessageRef.current = message;
+
+            const timer = setTimeout(() => {
+                // Fade out then clear
+                Animated.parallel([
+                    Animated.timing(messageOpacity, {
+                        toValue: 0,
+                        duration: 300,
+                        easing: Easing.in(Easing.ease),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(messageScale, {
+                        toValue: 0.85,
+                        duration: 300,
+                        useNativeDriver: true,
+                    }),
+                ]).start(() => setMessage(null));
+            }, 1700);
             return () => clearTimeout(timer);
         }
     }, [message]);
@@ -676,25 +873,24 @@ export default function LudoGame({ navigation, route }: any) {
 
     // Home base with 4 token slots
     const renderHomeBase = (playerIndex: number) => {
-        if (!players[playerIndex].active) return null;
-
         const baseColor = COLORS[playerIndex];
         const bgColor = COLOR_BG[playerIndex];
 
-        const homeTokens = tokens[playerIndex].filter(t => t.position === -1);
-        const homeTokenIndices = tokens[playerIndex]
+        const isActive = players[playerIndex].active;
+        const homeTokens = isActive ? tokens[playerIndex].filter(t => t.position === -1) : [];
+        const homeTokenIndices = isActive ? tokens[playerIndex]
             .map((t, i) => t.position === -1 ? i : -1)
-            .filter(i => i !== -1);
+            .filter(i => i !== -1) : [];
 
         return (
             <View style={[styles.homeBase, { backgroundColor: baseColor }]}>
                 <View style={styles.homeInner}>
                     <View style={styles.homeTokenGrid}>
                         {[0, 1, 2, 3].map((slotIndex) => {
-                            const tokenIdx = tokens[playerIndex].findIndex((t, i) =>
+                            const tokenIdx = isActive ? tokens[playerIndex].findIndex((t, i) =>
                                 t.position === -1 &&
                                 tokens[playerIndex].slice(0, i).filter(tt => tt.position === -1).length === slotIndex
-                            );
+                            ) : -1;
                             const actualTokenIndex = homeTokenIndices[slotIndex];
                             const hasToken = actualTokenIndex !== undefined;
                             const isMovable = hasToken && movableTokens.some(
@@ -805,7 +1001,23 @@ export default function LudoGame({ navigation, route }: any) {
         );
     };
 
-    // Animate tokens when positions change
+    // Helper: compute pixel position for a token at a given path position
+    const getTokenPixelPos = useCallback((playerIndex: number, position: number) => {
+        const coords = getTokenBoardPosition(playerIndex, position);
+        if (!coords) return null;
+        const [row, col] = coords;
+        return {
+            x: col * CELL_SIZE + (CELL_SIZE - CELL_SIZE * 0.85) / 2,
+            y: row * CELL_SIZE + (CELL_SIZE - CELL_SIZE * 0.85) / 2,
+        };
+    }, []);
+
+    // Track running token animations so we can cancel them on new moves
+    const runningTokenAnims = useRef<(Animated.CompositeAnimation | null)[][]>(
+        Array.from({ length: 4 }, () => [null, null, null, null])
+    );
+
+    // Animate tokens when positions change — smooth glide through waypoints
     useEffect(() => {
         tokens.forEach((playerTokens, pi) => {
             playerTokens.forEach((token, ti) => {
@@ -814,48 +1026,121 @@ export default function LudoGame({ navigation, route }: any) {
 
                 if (prevPos === curPos && tokenInitialized.current[pi][ti]) return;
 
+                // Stop any in-flight animation for this token
+                if (runningTokenAnims.current[pi][ti]) {
+                    runningTokenAnims.current[pi][ti]!.stop();
+                    runningTokenAnims.current[pi][ti] = null;
+                }
+
                 if (curPos >= 0 && curPos < 56) {
-                    const coords = getTokenBoardPosition(pi, curPos);
-                    if (!coords) return;
-                    const [row, col] = coords;
-                    const targetX = col * CELL_SIZE + (CELL_SIZE - CELL_SIZE * 0.85) / 2;
-                    const targetY = row * CELL_SIZE + (CELL_SIZE - CELL_SIZE * 0.85) / 2;
+                    const target = getTokenPixelPos(pi, curPos);
+                    if (!target) return;
 
                     if (!tokenInitialized.current[pi][ti] || prevPos === -1) {
-                        // Token just entered the board — pop in
-                        tokenAnims[pi][ti].setValue({ x: targetX, y: targetY });
+                        // Token just entered the board — smooth pop in
+                        tokenAnims[pi][ti].setValue({ x: target.x, y: target.y });
                         tokenScaleAnims[pi][ti].setValue(0);
-                        Animated.spring(tokenScaleAnims[pi][ti], {
+                        const anim = Animated.spring(tokenScaleAnims[pi][ti], {
                             toValue: 1,
-                            friction: 4,
-                            tension: 200,
+                            friction: 5,
+                            tension: 160,
                             useNativeDriver: true,
-                        }).start();
-                    } else {
-                        // Slide to new position
-                        Animated.spring(tokenAnims[pi][ti], {
-                            toValue: { x: targetX, y: targetY },
-                            friction: 6,
-                            tension: 120,
-                            useNativeDriver: true,
-                        }).start();
-                        // Little bounce at arrival
-                        Animated.sequence([
+                        });
+                        runningTokenAnims.current[pi][ti] = anim;
+                        anim.start(() => { runningTokenAnims.current[pi][ti] = null; });
+                    } else if (prevPos >= 0 && curPos > prevPos && (curPos - prevPos) <= 6) {
+                        // Smooth glide through waypoints using a single progress driver
+                        const numSteps = curPos - prevPos;
+                        const progress = new Animated.Value(0);
+
+                        // Build waypoint arrays for interpolation
+                        const inputRange: number[] = [];
+                        const xOutput: number[] = [];
+                        const yOutput: number[] = [];
+                        for (let s = 0; s <= numSteps; s++) {
+                            const wp = getTokenPixelPos(pi, prevPos + s);
+                            if (!wp) continue;
+                            inputRange.push(s);
+                            xOutput.push(wp.x);
+                            yOutput.push(wp.y);
+                        }
+
+                        // Listener-driven approach: update ValueXY from interpolated progress
+                        const listenerId = progress.addListener(({ value }) => {
+                            // Clamp and find which segment we're in
+                            const v = Math.max(0, Math.min(numSteps, value));
+                            const idx = Math.floor(v);
+                            const frac = v - idx;
+                            const i0 = Math.min(idx, inputRange.length - 1);
+                            const i1 = Math.min(idx + 1, inputRange.length - 1);
+                            const x = xOutput[i0] + (xOutput[i1] - xOutput[i0]) * frac;
+                            const y = yOutput[i0] + (yOutput[i1] - yOutput[i0]) * frac;
+                            tokenAnims[pi][ti].setValue({ x, y });
+                        });
+
+                        // Single smooth animation: ease-in at start, ease-out at end
+                        const totalDuration = numSteps * 110; // ~110ms per cell
+                        const moveAnim = Animated.sequence([
+                            Animated.timing(progress, {
+                                toValue: numSteps,
+                                duration: totalDuration,
+                                easing: Easing.inOut(Easing.cubic),
+                                useNativeDriver: false, // needed for listener
+                            }),
+                            // Subtle landing bounce
                             Animated.timing(tokenScaleAnims[pi][ti], {
-                                toValue: 1.25,
-                                duration: 100,
+                                toValue: 1.12,
+                                duration: 60,
                                 useNativeDriver: true,
                             }),
                             Animated.spring(tokenScaleAnims[pi][ti], {
                                 toValue: 1,
-                                friction: 3,
+                                friction: 6,
                                 tension: 200,
                                 useNativeDriver: true,
                             }),
-                        ]).start();
+                        ]);
+
+                        runningTokenAnims.current[pi][ti] = moveAnim;
+                        moveAnim.start(() => {
+                            progress.removeListener(listenerId);
+                            runningTokenAnims.current[pi][ti] = null;
+                            // Ensure final position is exact
+                            tokenAnims[pi][ti].setValue({ x: target.x, y: target.y });
+                        });
+                    } else {
+                        // Fallback: smooth slide (e.g. revert from 3-sixes)
+                        const anim = Animated.parallel([
+                            Animated.timing(tokenAnims[pi][ti], {
+                                toValue: { x: target.x, y: target.y },
+                                duration: 350,
+                                easing: Easing.inOut(Easing.cubic),
+                                useNativeDriver: true,
+                            }),
+                            Animated.sequence([
+                                Animated.delay(250),
+                                Animated.spring(tokenScaleAnims[pi][ti], {
+                                    toValue: 1,
+                                    friction: 6,
+                                    tension: 160,
+                                    useNativeDriver: true,
+                                }),
+                            ]),
+                        ]);
+                        runningTokenAnims.current[pi][ti] = anim;
+                        anim.start(() => { runningTokenAnims.current[pi][ti] = null; });
                     }
                     tokenInitialized.current[pi][ti] = true;
                 } else {
+                    // Token went back home (captured) — shrink out if it was on board
+                    if (tokenInitialized.current[pi][ti] && prevPos >= 0) {
+                        Animated.timing(tokenScaleAnims[pi][ti], {
+                            toValue: 0,
+                            duration: 200,
+                            easing: Easing.in(Easing.ease),
+                            useNativeDriver: true,
+                        }).start();
+                    }
                     tokenInitialized.current[pi][ti] = false;
                 }
 
@@ -925,7 +1210,7 @@ export default function LudoGame({ navigation, route }: any) {
     // Setup Screen
     if (gameMode === 'setup') {
         return (
-            <View style={[styles.container, { backgroundColor: containerBg }]}>
+            <SafeAreaView style={[styles.container, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
                 <ScrollView style={styles.scrollView} contentContainerStyle={styles.setupContainer} showsVerticalScrollIndicator={false}>
                     <View style={styles.titleSection}>
                         <Text style={styles.titleEmoji}>🎲</Text>
@@ -978,14 +1263,17 @@ export default function LudoGame({ navigation, route }: any) {
                             ))}
                         </View>
                         <View style={styles.playerChips}>
-                            {players.slice(0, playerCount).map((player, index) => (
-                                <View key={index} style={[styles.playerChip, { backgroundColor: COLOR_LIGHT[index] }]}>
-                                    <View style={[styles.chipDot, { backgroundColor: COLORS[index] }]} />
-                                    <Text style={[styles.chipText, { color: COLORS[index] }]}>
-                                        {playMode === 'passplay' ? `P${index + 1}` : (index === 0 ? 'You' : 'AI')}
-                                    </Text>
-                                </View>
-                            ))}
+                            {players.filter(p => p.active).map((player, index) => {
+                                const originalIndex = players.indexOf(player);
+                                return (
+                                    <View key={originalIndex} style={[styles.playerChip, { backgroundColor: COLOR_LIGHT[originalIndex] }]}>
+                                        <View style={[styles.chipDot, { backgroundColor: COLORS[originalIndex] }]} />
+                                        <Text style={[styles.chipText, { color: COLORS[originalIndex] }]}>
+                                            {playMode === 'passplay' ? `P${index + 1}` : (originalIndex === 0 ? 'You' : 'AI')}
+                                        </Text>
+                                    </View>
+                                );
+                            })}
                         </View>
                     </View>
 
@@ -1029,7 +1317,7 @@ export default function LudoGame({ navigation, route }: any) {
                         <Text style={[styles.backLinkText, { color: subtitleColor }]}>← Back to Home</Text>
                     </TouchableOpacity>
                 </ScrollView >
-            </View >
+            </SafeAreaView >
         );
     }
 
@@ -1037,7 +1325,7 @@ export default function LudoGame({ navigation, route }: any) {
     if (winner !== null) {
         const isHumanWinner = !players[winner].isComputer;
         return (
-            <View style={[styles.container, { backgroundColor: COLOR_BG[winner] }]}>
+            <SafeAreaView style={[styles.container, { backgroundColor: COLOR_BG[winner] }]} edges={['top', 'bottom']}>
                 <View style={styles.winnerContainer}>
                     <View style={[styles.winnerCard, { backgroundColor: '#fff' }]}>
                         <Text style={styles.winnerEmoji}>{isHumanWinner ? '🏆' : '🤖'}</Text>
@@ -1068,7 +1356,7 @@ export default function LudoGame({ navigation, route }: any) {
                         </View>
                     </View>
                 </View>
-            </View>
+            </SafeAreaView>
         );
     }
 
@@ -1117,7 +1405,7 @@ export default function LudoGame({ navigation, route }: any) {
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: containerBg }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
             {/* Dynamic Background Gradients */}
             <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[0] }]}>
                 <LinearGradient colors={[`${COLORS[0]}40`, `${COLORS[0]}00`]} locations={[0, 0.8]} start={{x: 0, y: 1}} end={{x: 1, y: 0}} style={StyleSheet.absoluteFill} />
@@ -1139,21 +1427,26 @@ export default function LudoGame({ navigation, route }: any) {
                 </Text>
             </View>
 
-            {/* Message */}
-            {message && (
-                <View style={[styles.messageBadge, { backgroundColor: cardBg }]}>
-                    <Text style={[styles.messageText, { color: textColor }]}>{message}</Text>
-                </View>
-            )}
+            {/* Message — animated fade in/out */}
+            <Animated.View
+                pointerEvents={message ? 'auto' : 'none'}
+                style={[
+                    styles.messageBadge,
+                    { backgroundColor: cardBg, opacity: messageOpacity, transform: [{ scale: messageScale }] },
+                ]}
+            >
+                <Text style={[styles.messageText, { color: textColor }]}>{message || prevMessageRef.current || ''}</Text>
+            </Animated.View>
 
             {/* Game Layout: Top Dice → Board → Bottom Dice */}
             <View style={styles.gameArea}>
-                {/* Top Dice Panel (for Red/Blue) */}
-                {isDiceTop && (
-                    <View style={[styles.topDicePanel, { backgroundColor: cardBg }]}>
-                        {renderDicePanel()}
-                    </View>
-                )}
+                {/* Top Dice Panel — always rendered, fades in/out */}
+                <Animated.View
+                    pointerEvents={isDiceTop ? 'auto' : 'none'}
+                    style={[styles.topDicePanel, { backgroundColor: cardBg, opacity: dicePanelTopOpacity }]}
+                >
+                    {renderDicePanel()}
+                </Animated.View>
 
                 {/* Board */}
                 <View style={styles.boardWrapper}>
@@ -1180,12 +1473,13 @@ export default function LudoGame({ navigation, route }: any) {
                     </View>
                 </View>
 
-                {/* Bottom Dice Panel (for Green/Yellow) */}
-                {!isDiceTop && (
-                    <View style={[styles.bottomDicePanel, { backgroundColor: cardBg }]}>
-                        {renderDicePanel()}
-                    </View>
-                )}
+                {/* Bottom Dice Panel — always rendered, fades in/out */}
+                <Animated.View
+                    pointerEvents={!isDiceTop ? 'auto' : 'none'}
+                    style={[styles.bottomDicePanel, { backgroundColor: cardBg, opacity: dicePanelBottomOpacity }]}
+                >
+                    {renderDicePanel()}
+                </Animated.View>
             </View>
 
             <TouchableOpacity style={styles.settingsLink} onPress={() => setMenuVisible(true)}>
@@ -1212,7 +1506,8 @@ export default function LudoGame({ navigation, route }: any) {
                     setMenuVisible(false);
                 }} 
             />
-        </View>
+        <AdBanner />
+        </SafeAreaView>
     );
 }
 

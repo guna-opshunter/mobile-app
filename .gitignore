@@ -46,3 +46,7 @@ google-services.json
 # build artifacts
 *.apk
 *.aab
+
+# local credentials
+credentials.json
+

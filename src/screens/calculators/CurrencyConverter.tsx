@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Keyboard, ActivityIndicator, Alert, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../../theme';
 import { ALL_CURRENCIES, CurrencyInfo } from '../../data/currencies';
+import AdBanner from '../../components/AdBanner';
 
 export default function CurrencyConverter({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
@@ -147,7 +149,8 @@ export default function CurrencyConverter({ navigation }: any) {
     };
 
     return (
-        <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }]}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? COLORS.dark.bg : backgroundColor }} edges={['top', 'bottom']}>
+        <ScrollView style={[styles.container]}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <View style={[styles.backButtonBg, { backgroundColor: theme.card }]}>
                     <Text style={[styles.backButtonText, { color: COLORS.primary }]}>← Back</Text>
@@ -243,7 +246,9 @@ export default function CurrencyConverter({ navigation }: any) {
                 </>
             )}
             <View style={{ height: 40 }} />
+        <AdBanner />
         </ScrollView>
+        </SafeAreaView>
     );
 }
 

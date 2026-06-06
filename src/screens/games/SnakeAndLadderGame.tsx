@@ -5,6 +5,7 @@ import { useTheme, COLORS as APP_COLORS } from '../../theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import GameMenuModal from '../../components/GameMenuModal';
 import { useRecords } from '../../context/RecordsContext';
+import AdBanner from '../../components/AdBanner';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(SCREEN_W - 32, 380);
@@ -41,7 +42,7 @@ export default function SnakeAndLadderGame({ navigation }: any) {
     const [dice, setDice] = useState<number | null>(null);
     const [rolling, setRolling] = useState(false);
     const [winner, setWinner] = useState<number | null>(null);
-    const [msg, setMsg] = useState<string | null>(null);
+    const [extraTurn, setExtraTurn] = useState(false);
     const [menuVisible, setMenuVisible] = useState(false);
 
     const diceScale = useRef(new Animated.Value(1)).current;
@@ -74,7 +75,7 @@ export default function SnakeAndLadderGame({ navigation }: any) {
         setCurrent(0);
         setWinner(null);
         setDice(null);
-        setMsg(null);
+        setExtraTurn(false);
         anims.forEach(a => a.setValue(getCoords(1)));
         setPhase('playing');
     };
@@ -103,7 +104,7 @@ export default function SnakeAndLadderGame({ navigation }: any) {
     const rollDice = () => {
         if (rolling || winner !== null) return;
         setRolling(true);
-        setMsg(null);
+        setExtraTurn(false);
 
         Animated.sequence([
             Animated.timing(diceScale, { toValue: 0.85, duration: 80, useNativeDriver: true }),
@@ -132,7 +133,6 @@ export default function SnakeAndLadderGame({ navigation }: any) {
             let next = pos + roll;
 
             if (!roundTrip && next > 100) {
-                setMsg(`Need exactly ${100 - pos} to win!`);
                 endTurn(roll);
                 return;
             }
@@ -148,7 +148,6 @@ export default function SnakeAndLadderGame({ navigation }: any) {
                 const nd = [...directions];
                 nd[current] = 'down';
                 setDirections(nd);
-                setMsg(`↩️ Turned around at 100! Now at ${next}`);
 
                 const np = [...positions];
                 np[current] = next;
@@ -161,14 +160,12 @@ export default function SnakeAndLadderGame({ navigation }: any) {
 
             let final = next;
             if (LADDERS[next]) {
-                setMsg(`🪜 Ladder! ${next} → ${LADDERS[next]}`);
                 final = LADDERS[next];
-                await new Promise(r => setTimeout(r, 300));
+                await new Promise(r => setTimeout(r, 250));
                 await animateMove(current, next, final, true);
             } else if (SNAKES[next]) {
-                setMsg(`🐍 Snake! ${next} → ${SNAKES[next]}`);
                 final = SNAKES[next];
-                await new Promise(r => setTimeout(r, 300));
+                await new Promise(r => setTimeout(r, 250));
                 await animateMove(current, next, final, true);
             }
 
@@ -182,7 +179,7 @@ export default function SnakeAndLadderGame({ navigation }: any) {
                     const nd = [...directions];
                     nd[current] = 'down';
                     setDirections(nd);
-                    setMsg('🔄 Reached 100! Now race back to 1!');
+
                     endTurn(roll);
                 } else {
                     // Classic mode — win!
@@ -210,7 +207,7 @@ export default function SnakeAndLadderGame({ navigation }: any) {
                 next = 1 + overshoot;
                 await animateMove(current, pos, 1);
                 await animateMove(current, 1, next);
-                setMsg(`↩️ Bounced off 1! Now at ${next}`);
+
 
                 const np = [...positions];
                 np[current] = next;
@@ -225,15 +222,13 @@ export default function SnakeAndLadderGame({ navigation }: any) {
             let final = next;
             if (SNAKES[next]) {
                 // Snake helps you go down faster!
-                setMsg(`🐍 Snake boost! ${next} → ${SNAKES[next]}`);
                 final = SNAKES[next];
-                await new Promise(r => setTimeout(r, 300));
+                await new Promise(r => setTimeout(r, 250));
                 await animateMove(current, next, final, true);
             } else if (LADDERS[next]) {
                 // Ladder pushes you back up!
-                setMsg(`🪜 Ladder pushes back! ${next} → ${LADDERS[next]}`);
                 final = LADDERS[next];
-                await new Promise(r => setTimeout(r, 300));
+                await new Promise(r => setTimeout(r, 250));
                 await animateMove(current, next, final, true);
             }
 
@@ -261,16 +256,17 @@ export default function SnakeAndLadderGame({ navigation }: any) {
 
     const endTurn = (roll: number) => {
         setRolling(false);
-        if (roll === 6) { setMsg(prev => (prev ? prev + ' | 🎲 Rolled 6, go again!' : '🎲 Rolled 6, go again!')); return; }
+        if (roll === 6) { setExtraTurn(true); return; }
         let n = (current + 1) % playerCount;
         setCurrent(n);
+        setExtraTurn(false);
         setTimeout(() => setDice(null), 800);
     };
 
     // ── SETUP SCREEN ──
     if (phase === 'setup') {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
+            <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
                 <ScrollView contentContainerStyle={styles.setupContent}>
                     <Text style={{ fontSize: 56, marginBottom: 12 }}>🐍🪜</Text>
                     <Text style={[styles.setupTitle, { color: txt }]}>Snakes & Ladders</Text>
@@ -563,7 +559,7 @@ export default function SnakeAndLadderGame({ navigation }: any) {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
+        <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
             {/* Dynamic Background Gradients */}
             <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgOpacities[0] }]} pointerEvents="none">
                 <LinearGradient colors={[`${P_COLORS[0]}35`, `${P_COLORS[0]}00`]} locations={[0, 0.7]} start={{x: 0, y: 1}} end={{x: 1, y: 0}} style={StyleSheet.absoluteFill} />
@@ -607,15 +603,12 @@ export default function SnakeAndLadderGame({ navigation }: any) {
                     ))}
                 </View>
 
-                {/* Turn + Message */}
+                {/* Turn indicator */}
                 <View style={[styles.turnBadge, { backgroundColor: P_COLORS[current] }]}>
-                    <Text style={styles.turnText}>{P_NAMES[current]}'s Turn</Text>
+                    <Text style={styles.turnText}>
+                        {P_NAMES[current]}'s Turn{extraTurn ? '  🎲 Extra!' : ''}
+                    </Text>
                 </View>
-                {msg && (
-                    <View style={[styles.msgBadge, { backgroundColor: cardBg }]}>
-                        <Text style={[styles.msgText, { color: txt }]}>{msg}</Text>
-                    </View>
-                )}
 
                 {/* Board */}
                 <View style={[styles.boardFrame, { backgroundColor: isDarkMode ? '#475569' : '#94A3B8' }]}>
@@ -636,7 +629,8 @@ export default function SnakeAndLadderGame({ navigation }: any) {
                         {rolling ? 'Rolling...' : winner !== null ? '' : 'Tap dice to roll'}
                     </Text>
                 </View>
-            </ScrollView>
+            <AdBanner />
+        </ScrollView>
 
             {/* Winner Overlay */}
             {winner !== null && (
@@ -711,7 +705,7 @@ const styles = StyleSheet.create({
     dot: { width: 13, height: 13, borderRadius: 7 },
     rollHint: { marginTop: 10, fontSize: 14, fontWeight: '700' },
     // Winner
-    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', zIndex: 100 },
+    overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', zIndex: 100 },
     winCard: { width: 300, padding: 32, borderRadius: 28, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.25, shadowRadius: 20, elevation: 15 },
     winTitle: { fontSize: 26, fontWeight: '900', marginBottom: 4 },
     winSub: { fontSize: 14, fontWeight: '500', marginBottom: 24 },

@@ -1,8 +1,9 @@
-import React, { Suspense, memo } from 'react';
+import React, { Suspense, memo, useEffect } from 'react';
 import { NavigationContainer, DefaultTheme, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet, Platform, ActivityIndicator, Image, Animated } from 'react-native';
+import mobileAds from 'react-native-google-mobile-ads';
 import ErrorBoundary from './src/components/ErrorBoundary';
 
 import { RecordsProvider } from './src/context/RecordsContext';
@@ -201,15 +202,15 @@ function MainTabs() {
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const insets = useSafeAreaInsets();
 
-  const tabBarHeight = Platform.OS === 'ios' ? 120 + insets.bottom : 120;
+  const tabBarHeight = 60 + insets.bottom;
 
   const baseTabBarStyle = {
     backgroundColor: theme.card,
     borderTopColor: theme.border,
     borderTopWidth: 0.5,
     height: tabBarHeight,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? insets.bottom : 10,
+    paddingTop: 4,
+    paddingBottom: insets.bottom > 0 ? insets.bottom : 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.06,
@@ -285,8 +286,8 @@ function SplashScreen() {
   return (
     <View style={styles.splashContainer}>
       <Animated.View style={[styles.splashContent, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
-        <Image 
-          source={require('./assets/icon.png')} 
+        <Image
+          source={require('./assets/icon.png')}
           style={{ width: 150, height: 150, marginBottom: 20, borderRadius: 20 }}
           resizeMode="contain"
         />
@@ -306,6 +307,18 @@ function AppContent() {
 
   const theme = settings.isDarkMode ? COLORS.dark : COLORS.light;
 
+  // Initialize Google Mobile Ads SDK
+  useEffect(() => {
+    mobileAds()
+      .initialize()
+      .then(adapterStatuses => {
+        console.log('Mobile Ads SDK initialized');
+      })
+      .catch(err => {
+        console.log('Mobile Ads SDK init error:', err);
+      });
+  }, []);
+
   // Show splash while loading persisted settings
   if (settings.isLoading) {
     return <SplashScreen />;
@@ -322,36 +335,38 @@ function AppContent() {
   };
 
   return (
-    <ThemeContext.Provider value={{
-      backgroundColor: settings.backgroundColor,
-      setBackgroundColor: settings.setBackgroundColor,
-      userName: settings.userName,
-      setUserName: settings.setUserName,
-      isDarkMode: settings.isDarkMode,
-      setIsDarkMode: settings.setIsDarkMode,
-      recentlyUsed: settings.recentlyUsed,
-      addRecentlyUsed: settings.addRecentlyUsed,
-      favorites: settings.favorites,
-      toggleFavorite: settings.toggleFavorite,
-      isFavorite: settings.isFavorite,
-      currencyType: settings.currencyType,
-      setCurrencyType: settings.setCurrencyType,
-      navigationType: settings.navigationType,
-      setNavigationType: settings.setNavigationType,
-      setupCompleted: settings.setupCompleted,
-      setSetupCompleted: settings.setSetupCompleted,
-      isLoading: settings.isLoading,
-    }}>
-      <RecordsProvider>
-        <AchievementsProvider>
-          <NavigationContainer theme={MyTheme}>
-            <MainTabs />
-            <AchievementToast />
-            <StatusBar style={settings.isDarkMode ? 'light' : 'dark'} />
-          </NavigationContainer>
-        </AchievementsProvider>
-      </RecordsProvider>
-    </ThemeContext.Provider>
+    <SafeAreaProvider>
+      <ThemeContext.Provider value={{
+        backgroundColor: settings.backgroundColor,
+        setBackgroundColor: settings.setBackgroundColor,
+        userName: settings.userName,
+        setUserName: settings.setUserName,
+        isDarkMode: settings.isDarkMode,
+        setIsDarkMode: settings.setIsDarkMode,
+        recentlyUsed: settings.recentlyUsed,
+        addRecentlyUsed: settings.addRecentlyUsed,
+        favorites: settings.favorites,
+        toggleFavorite: settings.toggleFavorite,
+        isFavorite: settings.isFavorite,
+        currencyType: settings.currencyType,
+        setCurrencyType: settings.setCurrencyType,
+        navigationType: settings.navigationType,
+        setNavigationType: settings.setNavigationType,
+        setupCompleted: settings.setupCompleted,
+        setSetupCompleted: settings.setSetupCompleted,
+        isLoading: settings.isLoading,
+      }}>
+        <RecordsProvider>
+          <AchievementsProvider>
+            <NavigationContainer theme={MyTheme}>
+              <MainTabs />
+              <AchievementToast />
+              <StatusBar style={settings.isDarkMode ? 'light' : 'dark'} />
+            </NavigationContainer>
+          </AchievementsProvider>
+        </RecordsProvider>
+      </ThemeContext.Provider>
+    </SafeAreaProvider>
   );
 }
 

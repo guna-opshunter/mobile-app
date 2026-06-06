@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Alert, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
+import AdBanner from '../../components/AdBanner';
 
 const EMOJIS = ['🌟', '🌈', '🌻', '🦄', '🌍', '🍒', '🚀', '🎵'];
 const { width: _ignored } = Dimensions.get('window'); // Removed global execution
@@ -134,7 +136,7 @@ export default function MemoryMatchGame({ navigation }: any) {
     const containerBg = isDarkMode ? '#0f0f1a' : '#f4f6fa';
 
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: any;
         if (isPlaying && !gameOver) {
             interval = setInterval(() => {
                 setTimer(t => t + 1);
@@ -231,7 +233,7 @@ export default function MemoryMatchGame({ navigation }: any) {
     if (gameOver) {
         const perf = getPerformanceMsg();
         return (
-            <View style={[styles.container, { backgroundColor: containerBg, justifyContent: 'center' }]}>
+            <SafeAreaView style={[styles.container, { backgroundColor: containerBg, justifyContent: 'center' }]} edges={['top', 'bottom']}>
                 <View style={[styles.gameOverCard, { backgroundColor: cardBg }]}>
                     <Text style={styles.confettiEmoji}>{perf.emoji}</Text>
                     <Text style={styles.starsText}>{perf.stars}</Text>
@@ -246,12 +248,12 @@ export default function MemoryMatchGame({ navigation }: any) {
                         <Text style={styles.playAgainButtonText}>Play Again</Text>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </SafeAreaView>
         );
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: containerBg }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.titleRow}>
@@ -313,7 +315,8 @@ export default function MemoryMatchGame({ navigation }: any) {
                 onSaveAndQuit={() => navigation.goBack()} 
                 onQuit={() => navigation.goBack()} 
             />
-        </View>
+        <AdBanner />
+        </SafeAreaView>
     );
 }
 
