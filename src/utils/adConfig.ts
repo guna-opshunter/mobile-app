@@ -24,6 +24,10 @@ const USE_PRODUCTION_ADS = false;
 const PRODUCTION_AD_UNITS = {
   BANNER_ANDROID: 'ca-app-pub-1463643965641951/XXXXXXXXXX', // Replace with real Android banner unit ID
   BANNER_IOS: 'ca-app-pub-1463643965641951/XXXXXXXXXX',     // Replace with real iOS banner unit ID
+  INTERSTITIAL_ANDROID: 'ca-app-pub-1463643965641951/YYYYYYYYYY', // Replace with real Android interstitial ID
+  INTERSTITIAL_IOS: 'ca-app-pub-1463643965641951/YYYYYYYYYY',     // Replace with real iOS interstitial ID
+  REWARDED_ANDROID: 'ca-app-pub-1463643965641951/ZZZZZZZZZZ',     // Replace with real Android rewarded ID
+  REWARDED_IOS: 'ca-app-pub-1463643965641951/ZZZZZZZZZZ',         // Replace with real iOS rewarded ID
 };
 
 /**
@@ -40,6 +44,36 @@ export const getBannerAdUnitId = (): string => {
     android: PRODUCTION_AD_UNITS.BANNER_ANDROID,
     ios: PRODUCTION_AD_UNITS.BANNER_IOS,
     default: TestIds.ADAPTIVE_BANNER,
+  }) as string;
+};
+
+/**
+ * Returns the appropriate interstitial ad unit ID based on platform and environment.
+ */
+export const getInterstitialAdUnitId = (): string => {
+  if (!USE_PRODUCTION_ADS || __DEV__) {
+    return TestIds.INTERSTITIAL;
+  }
+
+  return Platform.select({
+    android: PRODUCTION_AD_UNITS.INTERSTITIAL_ANDROID,
+    ios: PRODUCTION_AD_UNITS.INTERSTITIAL_IOS,
+    default: TestIds.INTERSTITIAL,
+  }) as string;
+};
+
+/**
+ * Returns the appropriate rewarded ad unit ID based on platform and environment.
+ */
+export const getRewardedAdUnitId = (): string => {
+  if (!USE_PRODUCTION_ADS || __DEV__) {
+    return TestIds.REWARDED;
+  }
+
+  return Platform.select({
+    android: PRODUCTION_AD_UNITS.REWARDED_ANDROID,
+    ios: PRODUCTION_AD_UNITS.REWARDED_IOS,
+    default: TestIds.REWARDED,
   }) as string;
 };
 

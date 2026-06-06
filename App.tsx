@@ -263,39 +263,80 @@ function MainTabs() {
 }
 
 function SplashScreen() {
-  const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
   const opacityAnim = React.useRef(new Animated.Value(0)).current;
+  const translateYAnim = React.useRef(new Animated.Value(15)).current;
+  
+  const glowScale = React.useRef(new Animated.Value(1)).current;
+  const glowOpacity = React.useRef(new Animated.Value(0.6)).current;
+  const progressWidth = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     // Clean, elegant modern app entrance
     Animated.parallel([
       Animated.timing(opacityAnim, {
         toValue: 1,
-        duration: 800,
+        duration: 1000,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
-        friction: 8,
-        tension: 20,
+        friction: 9,
+        tension: 15,
         useNativeDriver: true,
-      })
+      }),
+      Animated.timing(translateYAnim, {
+        toValue: 0,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
     ]).start();
+
+    // Breathing glow animation loop
+    Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(glowScale, { toValue: 1.25, duration: 2200, useNativeDriver: true }),
+          Animated.timing(glowScale, { toValue: 1.0, duration: 2200, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(glowOpacity, { toValue: 0.25, duration: 2200, useNativeDriver: true }),
+          Animated.timing(glowOpacity, { toValue: 0.6, duration: 2200, useNativeDriver: true }),
+        ])
+      ])
+    ).start();
+
+    // Minimal progress bar animation
+    Animated.timing(progressWidth, {
+      toValue: 1,
+      duration: 1800,
+      useNativeDriver: false,
+    }).start();
   }, []);
 
   return (
     <View style={styles.splashContainer}>
       <Animated.View style={[styles.splashContent, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
-        <Image
-          source={require('./assets/icon.png')}
-          style={{ width: 150, height: 150, marginBottom: 20, borderRadius: 20 }}
-          resizeMode="contain"
-        />
+        <View style={styles.logoContainer}>
+          <Animated.View style={[styles.logoGlow, { transform: [{ scale: glowScale }], opacity: glowOpacity }]} />
+          <Image
+            source={require('./assets/icon.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
       </Animated.View>
-      <Animated.View style={{ opacity: opacityAnim, alignItems: 'center' }}>
+      <Animated.View style={{ opacity: opacityAnim, transform: [{ translateY: translateYAnim }], alignItems: 'center' }}>
         <Text style={styles.splashTitle}>NexaPlay</Text>
         <Text style={styles.splashSubtitle}>Games & Smart Tools</Text>
-        <ActivityIndicator size="small" color={COLORS.primaryLight} style={{ marginTop: 24 }} />
+        <View style={styles.progressBarBg}>
+          <Animated.View style={[styles.progressBar, {
+            width: progressWidth.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['0%', '100%']
+            })
+          }]} />
+        </View>
       </Animated.View>
     </View>
   );
@@ -408,25 +449,65 @@ const styles = StyleSheet.create({
   // Splash
   splashContainer: {
     flex: 1,
-    backgroundColor: '#2D2D6B',
+    backgroundColor: '#0B0F19',
     justifyContent: 'center',
     alignItems: 'center',
   },
   splashContent: {
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 40,
   },
-
+  logoContainer: {
+    width: 140,
+    height: 140,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  logoImage: {
+    width: 140,
+    height: 140,
+    borderRadius: 28,
+  },
+  logoGlow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 25,
+    elevation: 8,
+  },
   splashTitle: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    letterSpacing: -0.5,
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 4,
+    textTransform: 'uppercase',
   },
   splashSubtitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: COLORS.primaryLight,
-    marginTop: 6,
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 10,
+    letterSpacing: 6,
+    textTransform: 'uppercase',
+  },
+  progressBarBg: {
+    width: 120,
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 1,
+    marginTop: 40,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 1,
   },
 });

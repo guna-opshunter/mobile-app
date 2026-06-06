@@ -5,6 +5,8 @@ import { useTheme } from '../../theme';
 import SoundEffects from '../../utils/sounds';
 import GameMenuModal from '../../components/GameMenuModal';
 import AdBanner from '../../components/AdBanner';
+import { useInterstitialAd } from 'react-native-google-mobile-ads';
+import { getInterstitialAdUnitId } from '../../utils/adConfig';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(SCREEN_WIDTH - 40, 380);
@@ -38,6 +40,43 @@ const getRandomApple = (snake: Point[]): Point => {
 
 export default function SnakeGame({ navigation }: any) {
     const { isDarkMode } = useTheme();
+
+    // Interstitial Ad setup
+    const {
+        isLoaded: isInterstitialLoaded,
+        isClosed: isInterstitialClosed,
+        load: loadInterstitial,
+        show: showInterstitial
+    } = useInterstitialAd(getInterstitialAdUnitId(), {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Load ad on mount
+    useEffect(() => {
+        loadInterstitial();
+    }, [loadInterstitial]);
+
+    // Reload ad when closed
+    useEffect(() => {
+        if (isInterstitialClosed) {
+            loadInterstitial();
+        }
+    }, [isInterstitialClosed]);
+
+    const resetGameWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        resetGame();
+    };
+
+    const quitWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        navigation.goBack();
+    };
+
     const [snake, setSnake] = useState<Point[]>(INITIAL_SNAKE);
     const [direction, setDirection] = useState<Direction>(INITIAL_DIRECTION);
     const [apple, setApple] = useState<Point>({ x: 5, y: 5 });
@@ -242,7 +281,7 @@ export default function SnakeGame({ navigation }: any) {
                 {isGameOver && (
                     <View style={styles.overlay}>
                         <Text style={styles.overlayTitle}>CRASHED!</Text>
-                        <TouchableOpacity style={styles.retryBtn} onPress={resetGame}>
+                        <TouchableOpacity style={styles.retryBtn} onPress={resetGameWithAd}>
                             <Text style={styles.retryText}>PLAY AGAIN</Text>
                         </TouchableOpacity>
                     </View>
@@ -282,8 +321,8 @@ export default function SnakeGame({ navigation }: any) {
                     setMenuVisible(false);
                     if (isPaused && !isGameOver) setIsPaused(false);
                 }} 
-                onSaveAndQuit={() => navigation.goBack()} 
-                onQuit={() => navigation.goBack()} 
+                onSaveAndQuit={quitWithAd} 
+                onQuit={quitWithAd} 
             />
         <AdBanner />
         </SafeAreaView>

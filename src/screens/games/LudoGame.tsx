@@ -7,6 +7,8 @@ import { useAchievements } from '../../context/AchievementsContext';
 import GameMenuModal from '../../components/GameMenuModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import AdBanner from '../../components/AdBanner';
+import { useInterstitialAd } from 'react-native-google-mobile-ads';
+import { getInterstitialAdUnitId } from '../../utils/adConfig';
 
 const { width, height } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 24, height * 0.48); // ~70% feel, fits with dice panels
@@ -101,6 +103,28 @@ export default function LudoGame({ navigation, route }: any) {
     const { isDarkMode } = useTheme();
     const { addGameRecord, saveLudoGame, deleteSavedGame } = useRecords();
     const { checkAndUnlock, incrementStat } = useAchievements();
+
+    // Interstitial Ad setup
+    const {
+        isLoaded: isInterstitialLoaded,
+        isClosed: isInterstitialClosed,
+        load: loadInterstitial,
+        show: showInterstitial
+    } = useInterstitialAd(getInterstitialAdUnitId(), {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Load ad on mount
+    useEffect(() => {
+        loadInterstitial();
+    }, [loadInterstitial]);
+
+    // Reload ad when closed
+    useEffect(() => {
+        if (isInterstitialClosed) {
+            loadInterstitial();
+        }
+    }, [isInterstitialClosed]);
 
     // Check if we're restoring a saved game
     const savedGame = route?.params?.savedGame;
@@ -776,6 +800,27 @@ export default function LudoGame({ navigation, route }: any) {
         setMessage(null);
     };
 
+    const resetGameWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        resetGame();
+    };
+
+    const quitWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        navigation.goBack();
+    };
+
+    const startGameWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        startGame();
+    };
+
     const saveGameResult = () => {
         if (winner === null) return;
 
@@ -1313,7 +1358,7 @@ export default function LudoGame({ navigation, route }: any) {
                         <Text style={styles.startBtnText}>🎮 Start Game</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
+                    <TouchableOpacity style={styles.backLink} onPress={quitWithAd}>
                         <Text style={[styles.backLinkText, { color: subtitleColor }]}>← Back to Home</Text>
                     </TouchableOpacity>
                 </ScrollView >
@@ -1347,10 +1392,10 @@ export default function LudoGame({ navigation, route }: any) {
                         </TouchableOpacity>
 
                         <View style={styles.winnerActions}>
-                            <TouchableOpacity style={styles.primaryBtn} onPress={startGame}>
+                            <TouchableOpacity style={styles.primaryBtn} onPress={startGameWithAd}>
                                 <Text style={styles.primaryBtnText}>Play Again</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.secondaryBtn, { borderColor: surfaceBg }]} onPress={resetGame}>
+                            <TouchableOpacity style={[styles.secondaryBtn, { borderColor: surfaceBg }]} onPress={resetGameWithAd}>
                                 <Text style={[styles.secondaryBtnText, { color: '#64748B' }]}>Settings</Text>
                             </TouchableOpacity>
                         </View>
@@ -1498,11 +1543,11 @@ export default function LudoGame({ navigation, route }: any) {
                         difficulty,
                         playerCount: players.filter(p => p.active).length,
                     });
-                    resetGame();
+                    resetGameWithAd();
                     setMenuVisible(false);
                 }} 
                 onQuit={() => {
-                    resetGame();
+                    resetGameWithAd();
                     setMenuVisible(false);
                 }} 
             />

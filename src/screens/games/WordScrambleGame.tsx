@@ -4,6 +4,8 @@ import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
 import AdBanner from '../../components/AdBanner';
+import { useInterstitialAd } from 'react-native-google-mobile-ads';
+import { getInterstitialAdUnitId } from '../../utils/adConfig';
 
 const WORDS = [
     { word: 'ELEPHANT', hint: 'The giant of the savannah with a very long nose' },
@@ -93,6 +95,43 @@ const selectGameWords = (): any[] => {
 export default function WordScrambleGame({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
     const insets = useSafeAreaInsets();
+
+    // Interstitial Ad setup
+    const {
+        isLoaded: isInterstitialLoaded,
+        isClosed: isInterstitialClosed,
+        load: loadInterstitial,
+        show: showInterstitial
+    } = useInterstitialAd(getInterstitialAdUnitId(), {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Load ad on mount
+    useEffect(() => {
+        loadInterstitial();
+    }, [loadInterstitial]);
+
+    // Reload ad when closed
+    useEffect(() => {
+        if (isInterstitialClosed) {
+            loadInterstitial();
+        }
+    }, [isInterstitialClosed]);
+
+    const restartGameWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        restartGame();
+    };
+
+    const quitWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        navigation.goBack();
+    };
+
     const [gameWords, setGameWords] = useState<any[]>([]);
     const [currentWordIndex, setCurrentWordIndex] = useState(0);
     const [scrambledWord, setScrambledWord] = useState('');
@@ -232,7 +271,7 @@ export default function WordScrambleGame({ navigation }: any) {
                         </View>
                     </View>
 
-                    <TouchableOpacity style={styles.playAgainButton} onPress={restartGame} activeOpacity={0.85}>
+                    <TouchableOpacity style={styles.playAgainButton} onPress={restartGameWithAd} activeOpacity={0.85}>
                         <Text style={styles.playAgainButtonText}>🔄 Play Again</Text>
                     </TouchableOpacity>
                 </View>
@@ -373,8 +412,8 @@ export default function WordScrambleGame({ navigation }: any) {
             <GameMenuModal 
                 visible={menuVisible} 
                 onClose={() => setMenuVisible(false)} 
-                onSaveAndQuit={() => navigation.goBack()} 
-                onQuit={() => navigation.goBack()} 
+                onSaveAndQuit={quitWithAd} 
+                onQuit={quitWithAd} 
             />
         </KeyboardAvoidingView>
     );

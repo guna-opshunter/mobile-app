@@ -8,6 +8,8 @@ import { useTheme, COLORS } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
 import { useRecords } from '../../context/RecordsContext';
 import AdBanner from '../../components/AdBanner';
+import { useInterstitialAd } from 'react-native-google-mobile-ads';
+import { getInterstitialAdUnitId } from '../../utils/adConfig';
 
 const BOARD_SIZE = 4;
 const TILE_MARGIN = 6;
@@ -172,6 +174,42 @@ export default function Game2048({ navigation }: any) {
     const { isDarkMode } = useTheme();
     const { width: screenWidth } = useWindowDimensions();
     const { addGameRecord } = useRecords();
+
+    // Interstitial Ad setup
+    const {
+        isLoaded: isInterstitialLoaded,
+        isClosed: isInterstitialClosed,
+        load: loadInterstitial,
+        show: showInterstitial
+    } = useInterstitialAd(getInterstitialAdUnitId(), {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Load ad on mount
+    useEffect(() => {
+        loadInterstitial();
+    }, [loadInterstitial]);
+
+    // Reload ad when closed
+    useEffect(() => {
+        if (isInterstitialClosed) {
+            loadInterstitial();
+        }
+    }, [isInterstitialClosed]);
+
+    const newGameWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        newGame();
+    };
+
+    const quitWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        navigation.goBack();
+    };
     
     const boardWidth = Math.min(screenWidth - 40, 420);
     const tileSize = (boardWidth - BOARD_PADDING * 2 - TILE_MARGIN * (BOARD_SIZE + 1)) / BOARD_SIZE;
@@ -294,7 +332,7 @@ export default function Game2048({ navigation }: any) {
 
             <View style={styles.toolbar}>
                 <Text style={{ color: subColor, fontSize: 13, flex: 1 }}>Swipe to move all tiles</Text>
-                <TouchableOpacity style={styles.newGameBtn} onPress={newGame} activeOpacity={0.8}>
+                <TouchableOpacity style={styles.newGameBtn} onPress={newGameWithAd} activeOpacity={0.8}>
                     <Text style={styles.newGameText}>New Game</Text>
                 </TouchableOpacity>
             </View>
@@ -328,7 +366,7 @@ export default function Game2048({ navigation }: any) {
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.overlayBtn, { backgroundColor: '#6B7280', marginTop: 10 }]}
-                            onPress={newGame}
+                            onPress={newGameWithAd}
                         >
                             <Text style={styles.overlayBtnText}>New Game</Text>
                         </TouchableOpacity>
@@ -343,12 +381,12 @@ export default function Game2048({ navigation }: any) {
                         <Text style={styles.overlayEmoji}>😵</Text>
                         <Text style={styles.overlayTitle}>Game Over!</Text>
                         <Text style={styles.overlayScore}>Final Score: {score}</Text>
-                        <TouchableOpacity style={[styles.overlayBtn, { backgroundColor: '#EDC22E' }]} onPress={newGame}>
+                        <TouchableOpacity style={[styles.overlayBtn, { backgroundColor: '#EDC22E' }]} onPress={newGameWithAd}>
                             <Text style={styles.overlayBtnText}>🔄 Try Again</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.overlayBtn, { backgroundColor: '#6B7280', marginTop: 10 }]}
-                            onPress={() => navigation.goBack()}
+                            onPress={quitWithAd}
                         >
                             <Text style={styles.overlayBtnText}>🔙 Exit</Text>
                         </TouchableOpacity>
@@ -359,8 +397,8 @@ export default function Game2048({ navigation }: any) {
             <GameMenuModal 
                 visible={menuVisible} 
                 onClose={() => setMenuVisible(false)} 
-                onSaveAndQuit={() => navigation.goBack()} 
-                onQuit={() => navigation.goBack()} 
+                onSaveAndQuit={quitWithAd} 
+                onQuit={quitWithAd} 
             />
         <AdBanner />
         </SafeAreaView>

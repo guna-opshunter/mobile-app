@@ -6,6 +6,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import GameMenuModal from '../../components/GameMenuModal';
 import { useRecords } from '../../context/RecordsContext';
 import AdBanner from '../../components/AdBanner';
+import { useInterstitialAd } from 'react-native-google-mobile-ads';
+import { getInterstitialAdUnitId } from '../../utils/adConfig';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(SCREEN_W - 32, 380);
@@ -33,6 +35,43 @@ type Phase = 'setup' | 'playing';
 export default function SnakeAndLadderGame({ navigation }: any) {
     const { isDarkMode } = useTheme();
     const { addGameRecord } = useRecords();
+
+    // Interstitial Ad setup
+    const {
+        isLoaded: isInterstitialLoaded,
+        isClosed: isInterstitialClosed,
+        load: loadInterstitial,
+        show: showInterstitial
+    } = useInterstitialAd(getInterstitialAdUnitId(), {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Load ad on mount
+    useEffect(() => {
+        loadInterstitial();
+    }, [loadInterstitial]);
+
+    // Reload ad when closed
+    useEffect(() => {
+        if (isInterstitialClosed) {
+            loadInterstitial();
+        }
+    }, [isInterstitialClosed]);
+
+    const playAgainWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        setPhase('setup');
+    };
+
+    const quitWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        navigation.goBack();
+    };
+
     const [phase, setPhase] = useState<Phase>('setup');
     const [playerCount, setPlayerCount] = useState(2);
     const [roundTrip, setRoundTrip] = useState(false);
@@ -639,10 +678,10 @@ export default function SnakeAndLadderGame({ navigation }: any) {
                         <Text style={{ fontSize: 64, marginBottom: 8 }}>🏆</Text>
                         <Text style={[styles.winTitle, { color: P_COLORS[winner] }]}>{P_NAMES[winner]} Wins!</Text>
                         <Text style={[styles.winSub, { color: sub }]}>Congratulations, Player {winner + 1}!</Text>
-                        <TouchableOpacity style={[styles.winBtn, { backgroundColor: APP_COLORS.primary }]} onPress={() => { setPhase('setup'); }}>
+                        <TouchableOpacity style={[styles.winBtn, { backgroundColor: APP_COLORS.primary }]} onPress={playAgainWithAd}>
                             <Text style={styles.winBtnText}>Play Again</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.winBtnSec, { borderColor: surfBg }]} onPress={() => navigation.goBack()}>
+                        <TouchableOpacity style={[styles.winBtnSec, { borderColor: surfBg }]} onPress={quitWithAd}>
                             <Text style={[styles.winBtnSecText, { color: sub }]}>Quit</Text>
                         </TouchableOpacity>
                     </View>

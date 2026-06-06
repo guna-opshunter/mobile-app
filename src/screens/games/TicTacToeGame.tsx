@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, ScrollView, useWindowDimensions, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, COLORS } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
 import { useRecords } from '../../context/RecordsContext';
 import AdBanner from '../../components/AdBanner';
+import { useInterstitialAd } from 'react-native-google-mobile-ads';
+import { getInterstitialAdUnitId } from '../../utils/adConfig';
 
 // Dimensions are dynamically calculated inside components for responsiveness.
 
@@ -23,6 +25,28 @@ export default function TicTacToeGame({ navigation }: any) {
     const { isDarkMode } = useTheme();
     const { width } = useWindowDimensions();
     const { addGameRecord } = useRecords();
+
+    // Interstitial Ad setup
+    const {
+        isLoaded: isInterstitialLoaded,
+        isClosed: isInterstitialClosed,
+        load: loadInterstitial,
+        show: showInterstitial
+    } = useInterstitialAd(getInterstitialAdUnitId(), {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Load ad on mount
+    useEffect(() => {
+        loadInterstitial();
+    }, [loadInterstitial]);
+
+    // Reload ad when closed
+    useEffect(() => {
+        if (isInterstitialClosed) {
+            loadInterstitial();
+        }
+    }, [isInterstitialClosed]);
     
     // Dynamically calculate responsive maximum width
     const boardWidth = Math.min(width - 40, 420);
@@ -217,6 +241,20 @@ export default function TicTacToeGame({ navigation }: any) {
         setMode(null);
     };
 
+    const playAgainWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        resetGame();
+    };
+
+    const quitToMenuWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        resetAll();
+    };
+
     // Mode select screen
     if (mode === null) {
         return (
@@ -358,14 +396,14 @@ export default function TicTacToeGame({ navigation }: any) {
             <View style={styles.actionRow}>
                 <TouchableOpacity
                     style={[styles.actionBtn, { backgroundColor: COLORS.primary }]}
-                    onPress={resetGame}
+                    onPress={playAgainWithAd}
                     activeOpacity={0.85}
                 >
                     <Text style={styles.actionBtnText}>🔄 New Round</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.actionBtn, { backgroundColor: '#6B7280' }]}
-                    onPress={resetAll}
+                    onPress={quitToMenuWithAd}
                     activeOpacity={0.85}
                 >
                     <Text style={styles.actionBtnText}>🔙 Menu</Text>
@@ -390,13 +428,13 @@ export default function TicTacToeGame({ navigation }: any) {
                         <View style={styles.modalActionRow}>
                             <TouchableOpacity
                                 style={[styles.modalBtn, { backgroundColor: COLORS.primary }]}
-                                onPress={resetGame}
+                                onPress={playAgainWithAd}
                             >
                                 <Text style={styles.modalBtnText}>Play Again</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.modalBtn, { backgroundColor: '#6B7280' }]}
-                                onPress={resetAll}
+                                onPress={quitToMenuWithAd}
                             >
                                 <Text style={styles.modalBtnText}>Menu</Text>
                             </TouchableOpacity>

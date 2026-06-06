@@ -6,6 +6,8 @@ import GameMenuModal from '../../components/GameMenuModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRecords } from '../../context/RecordsContext';
 import AdBanner from '../../components/AdBanner';
+import { useInterstitialAd } from 'react-native-google-mobile-ads';
+import { getInterstitialAdUnitId } from '../../utils/adConfig';
 // Board config is calculated dynamically based on screen width
 
 // Chess pieces as Unicode characters
@@ -29,6 +31,28 @@ export default function ChessGame({ navigation }: any) {
     const { isDarkMode, backgroundColor } = useTheme();
     const { width } = useWindowDimensions();
     const { addGameRecord } = useRecords();
+
+    // Interstitial Ad setup
+    const {
+        isLoaded: isInterstitialLoaded,
+        isClosed: isInterstitialClosed,
+        load: loadInterstitial,
+        show: showInterstitial
+    } = useInterstitialAd(getInterstitialAdUnitId(), {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Load ad on mount
+    useEffect(() => {
+        loadInterstitial();
+    }, [loadInterstitial]);
+
+    // Reload ad when closed
+    useEffect(() => {
+        if (isInterstitialClosed) {
+            loadInterstitial();
+        }
+    }, [isInterstitialClosed]);
     
     // Dynamic Responsive Sizing
     const boardSize = Math.min(width - 40, 400);
@@ -287,6 +311,20 @@ export default function ChessGame({ navigation }: any) {
         setInCheck(null);
     };
 
+    const resetGameWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        resetGame();
+    };
+
+    const quitWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        navigation.goBack();
+    };
+
     const isValidMoveSquare = (row: number, col: number) => {
         return validMoves.some(([r, c]) => r === row && c === col);
     };
@@ -450,10 +488,10 @@ export default function ChessGame({ navigation }: any) {
                             {gameStatus.includes('Checkmate') ? 'The king is trapped!' : (gameStatus.includes('Draw') ? 'No valid moves available.' : 'Game finished')}
                         </Text>
                         <View style={styles.modalActions}>
-                            <TouchableOpacity style={styles.modalPrimaryBtn} onPress={resetGame}>
+                            <TouchableOpacity style={styles.modalPrimaryBtn} onPress={resetGameWithAd}>
                                 <Text style={styles.modalPrimaryText}>Play Again</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.modalSecondaryBtn, { borderColor: isDarkMode ? '#444' : '#ddd' }]} onPress={() => navigation.goBack()}>
+                            <TouchableOpacity style={[styles.modalSecondaryBtn, { borderColor: isDarkMode ? '#444' : '#ddd' }]} onPress={quitWithAd}>
                                 <Text style={[styles.modalSecondaryText, { color: textColor }]}>Go Back</Text>
                             </TouchableOpacity>
                         </View>
@@ -464,8 +502,8 @@ export default function ChessGame({ navigation }: any) {
             <GameMenuModal 
                 visible={menuVisible} 
                 onClose={() => setMenuVisible(false)} 
-                onSaveAndQuit={() => navigation.goBack()} 
-                onQuit={() => navigation.goBack()} 
+                onSaveAndQuit={quitWithAd} 
+                onQuit={quitWithAd} 
             />
 
         <AdBanner />

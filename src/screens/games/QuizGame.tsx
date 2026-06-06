@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Animated, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Animated, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { CLASS_LEVELS, ClassLevel, QuestionSet, QUESTION_POOLS, getRandomQuestions } from '../../data/classQuestions';
 import { useRecords } from '../../context/RecordsContext';
 import { useAchievements } from '../../context/AchievementsContext';
 import AdBanner from '../../components/AdBanner';
+import { useInterstitialAd, useRewardedAd } from 'react-native-google-mobile-ads';
+import { getInterstitialAdUnitId, getRewardedAdUnitId } from '../../utils/adConfig';
 
 const { width } = Dimensions.get('window');
 
@@ -28,6 +30,78 @@ export default function QuizGame({ navigation }: any) {
     const [isNewHighScore, setIsNewHighScore] = useState(false);
     const [streak, setStreak] = useState(0);
     const [bestStreak, setBestStreak] = useState(0);
+
+    // Lifeline & Ad states
+    const [eliminatedOptions, setEliminatedOptions] = useState<number[]>([]);
+    const [lifelineUsed, setLifelineUsed] = useState(false);
+
+    // Interstitial Ad setup
+    const {
+        isLoaded: isInterstitialLoaded,
+        isClosed: isInterstitialClosed,
+        load: loadInterstitial,
+        show: showInterstitial
+    } = useInterstitialAd(getInterstitialAdUnitId(), {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Rewarded Ad setup
+    const {
+        isLoaded: isRewardedLoaded,
+        isClosed: isRewardedClosed,
+        load: loadRewarded,
+        show: showRewarded,
+        reward: rewardedReward
+    } = useRewardedAd(getRewardedAdUnitId(), {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Load ads on mount
+    useEffect(() => {
+        loadInterstitial();
+        loadRewarded();
+    }, [loadInterstitial, loadRewarded]);
+
+    // Reload ads when closed
+    useEffect(() => {
+        if (isInterstitialClosed) {
+            loadInterstitial();
+        }
+    }, [isInterstitialClosed]);
+
+    useEffect(() => {
+        if (isRewardedClosed) {
+            loadRewarded();
+        }
+    }, [isRewardedClosed]);
+
+    // Handle rewarded ad result
+    useEffect(() => {
+        if (rewardedReward) {
+            eliminateTwoOptions();
+            setLifelineUsed(true);
+        }
+    }, [rewardedReward]);
+
+    const eliminateTwoOptions = () => {
+        if (!selectedSet) return;
+        const currentQ = selectedSet.questions[currentQuestion];
+        const correctIndex = currentQ.correct;
+        const incorrectIndices = [0, 1, 2, 3].filter(idx => idx !== correctIndex);
+        
+        // Shuffle and pick 2 options to eliminate
+        const shuffled = incorrectIndices.sort(() => 0.5 - Math.random());
+        const toEliminate = shuffled.slice(0, 2);
+        setEliminatedOptions(toEliminate);
+    };
+
+    const useLifeline = () => {
+        if (isRewardedLoaded) {
+            showRewarded();
+        } else {
+            Alert.alert("Ad Loading", "Please wait a moment for the video to load...");
+        }
+    };
 
     // Animations
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -119,6 +193,7 @@ export default function QuizGame({ navigation }: any) {
             setShowResult(false);
             setTimeLeft(selectedLevel.timePerQuestion);
             timerBarWidth.setValue(1);
+            setEliminatedOptions([]); // reset eliminated options
         } else {
             finishGame();
         }
@@ -159,6 +234,11 @@ export default function QuizGame({ navigation }: any) {
         checkAndUnlock('quiz_master');
 
         setScreen('result');
+
+        // Show interstitial ad when finishing a quiz set
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
     };
 
     const selectLevel = (level: ClassLevel) => {
@@ -181,6 +261,8 @@ export default function QuizGame({ navigation }: any) {
         setIsNewHighScore(false);
         setStreak(0);
         setBestStreak(0);
+        setEliminatedOptions([]); // reset eliminated options
+        setLifelineUsed(false);    // reset lifeline
         fadeAnim.setValue(0);
         scaleAnim.setValue(0.9);
         timerBarWidth.setValue(1);
@@ -356,6 +438,12 @@ export default function QuizGame({ navigation }: any) {
 
                     <Text style={[styles.savedNote, { color: subtitleColor }]}>✓ Score saved to Records</Text>
 
+                    <View style={[styles.breakCard, { backgroundColor: selectedLevel.color + '10', borderColor: selectedLevel.color + '30' }]}>
+                        <Text style={[styles.breakText, { color: selectedLevel.color }]}>
+                            ⏳ Take a few seconds' break before starting your next set or quiz!
+                        </Text>
+                    </View>
+
                     <TouchableOpacity
                         style={[styles.shareBtn, { borderColor: selectedLevel.color }]}
                         onPress={() => Share.share({
@@ -401,7 +489,6 @@ export default function QuizGame({ navigation }: any) {
     if (!selectedLevel || !selectedSet) return null;
 
     const question = selectedSet.questions[currentQuestion];
-    const progress = ((currentQuestion) / selectedSet.questions.length) * 100;
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: containerBg }]} edges={['top', 'bottom']}>
@@ -474,39 +561,61 @@ export default function QuizGame({ navigation }: any) {
                     <Text style={[styles.questionText, { color: textColor }]}>{question.question}</Text>
 
                     <View style={styles.optionsGrid}>
-                        {question.options.map((option, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                style={getOptionStyle(index)}
-                                onPress={() => selectOption(index)}
-                                disabled={showResult}
-                                activeOpacity={0.7}
-                            >
-                                <View style={[
-                                    styles.optionIndex,
-                                    showResult && index === question.correct && styles.optionIndexCorrect,
-                                    showResult && selectedOption === index && index !== question.correct && styles.optionIndexWrong,
-                                    !showResult && { backgroundColor: selectedLevel.color + '20' }
-                                ]}>
+                        {question.options.map((option, index) => {
+                            const isEliminated = eliminatedOptions.includes(index);
+                            return (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={[getOptionStyle(index), isEliminated && { opacity: 0.15 }]}
+                                    onPress={() => selectOption(index)}
+                                    disabled={showResult || isEliminated}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[
+                                        styles.optionIndex,
+                                        showResult && index === question.correct && styles.optionIndexCorrect,
+                                        showResult && selectedOption === index && index !== question.correct && styles.optionIndexWrong,
+                                        !showResult && { backgroundColor: selectedLevel.color + '20' }
+                                    ]}>
+                                        <Text style={[
+                                            styles.optionIndexText,
+                                            showResult && (index === question.correct || selectedOption === index) && { color: '#fff' },
+                                            !showResult && { color: selectedLevel.color }
+                                        ]}>{String.fromCharCode(65 + index)}</Text>
+                                    </View>
                                     <Text style={[
-                                        styles.optionIndexText,
-                                        showResult && (index === question.correct || selectedOption === index) && { color: '#fff' },
-                                        !showResult && { color: selectedLevel.color }
-                                    ]}>{String.fromCharCode(65 + index)}</Text>
-                                </View>
-                                <Text style={[
-                                    styles.optionText,
-                                    { color: showResult && (index === question.correct || selectedOption === index) ? '#fff' : textColor }
-                                ]}>{option}</Text>
-                                {showResult && index === question.correct && (
-                                    <Text style={styles.resultMark}>✓</Text>
-                                )}
-                                {showResult && selectedOption === index && index !== question.correct && (
-                                    <Text style={styles.resultMark}>✗</Text>
-                                )}
-                            </TouchableOpacity>
-                        ))}
+                                        styles.optionText,
+                                        { color: showResult && (index === question.correct || selectedOption === index) ? '#fff' : textColor }
+                                    ]}>{option}</Text>
+                                    {showResult && index === question.correct && (
+                                        <Text style={styles.resultMark}>✓</Text>
+                                    )}
+                                    {showResult && selectedOption === index && index !== question.correct && (
+                                        <Text style={styles.resultMark}>✗</Text>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
+
+                    {!lifelineUsed && !showResult && (
+                        <TouchableOpacity
+                            style={[
+                                styles.lifelineBtn,
+                                {
+                                    borderColor: selectedLevel.color,
+                                    backgroundColor: isRewardedLoaded ? 'transparent' : 'rgba(0,0,0,0.05)',
+                                    opacity: isRewardedLoaded ? 1 : 0.6
+                                }
+                            ]}
+                            onPress={useLifeline}
+                            disabled={!isRewardedLoaded}
+                        >
+                            <Text style={[styles.lifelineText, { color: selectedLevel.color }]}>
+                                {isRewardedLoaded ? '💡 Use 50/50 Lifeline (Watch Video Ad)' : '⏳ Loading Lifeline Ad...'}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </Animated.View>
             <AdBanner />
         </ScrollView>
@@ -518,20 +627,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    // Level Selection
     header: {
         paddingTop: 60,
         paddingBottom: 28,
         alignItems: 'center',
         paddingHorizontal: 24,
-    },
-    iconCircle: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 14,
     },
     titleEmoji: {
         fontSize: 48,
@@ -602,7 +702,6 @@ const styles = StyleSheet.create({
     arrow: {
         fontSize: 16,
     },
-    // Sets Screen
     setsHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -692,7 +791,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 6,
     },
-    // Result Screen
     resultScroll: {
         flexGrow: 1,
         justifyContent: 'center',
@@ -804,7 +902,6 @@ const styles = StyleSheet.create({
     levelLinkText: {
         fontSize: 14,
     },
-    // Timer Bar
     timerBarTrack: {
         height: 6,
         marginHorizontal: 20,
@@ -815,7 +912,6 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 3,
     },
-    // Streak
     streakBadge: {
         backgroundColor: '#FEF3C7',
         paddingHorizontal: 10,
@@ -829,7 +925,6 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#D97706',
     },
-    // Game Screen
     gameHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -957,5 +1052,34 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#fff',
         fontWeight: '700',
+    },
+    lifelineBtn: {
+        borderWidth: 1.5,
+        borderRadius: 12,
+        paddingVertical: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 14,
+        borderStyle: 'dashed',
+    },
+    lifelineText: {
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    breakCard: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginBottom: 16,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    breakText: {
+        fontSize: 13,
+        fontWeight: '600',
+        textAlign: 'center',
+        lineHeight: 18,
     },
 });

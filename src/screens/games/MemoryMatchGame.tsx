@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import GameMenuModal from '../../components/GameMenuModal';
 import AdBanner from '../../components/AdBanner';
+import { useInterstitialAd } from 'react-native-google-mobile-ads';
+import { getInterstitialAdUnitId } from '../../utils/adConfig';
 
 const EMOJIS = ['🌟', '🌈', '🌻', '🦄', '🌍', '🍒', '🚀', '🎵'];
 const { width: _ignored } = Dimensions.get('window'); // Removed global execution
@@ -115,6 +117,28 @@ const MemoryCard = ({
 export default function MemoryMatchGame({ navigation }: any) {
     const { isDarkMode } = useTheme();
     const { width } = useWindowDimensions();
+
+    // Interstitial Ad setup
+    const {
+        isLoaded: isInterstitialLoaded,
+        isClosed: isInterstitialClosed,
+        load: loadInterstitial,
+        show: showInterstitial
+    } = useInterstitialAd(getInterstitialAdUnitId(), {
+        requestNonPersonalizedAdsOnly: true,
+    });
+
+    // Load ad on mount
+    useEffect(() => {
+        loadInterstitial();
+    }, [loadInterstitial]);
+
+    // Reload ad when closed
+    useEffect(() => {
+        if (isInterstitialClosed) {
+            loadInterstitial();
+        }
+    }, [isInterstitialClosed]);
     
     // Dynamic sizing based on actual window layout
     const boardWidth = Math.min(width, 500);
@@ -218,6 +242,20 @@ export default function MemoryMatchGame({ navigation }: any) {
         }, 400);
     };
 
+    const restartGameWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        restartGame();
+    };
+
+    const quitWithAd = () => {
+        if (isInterstitialLoaded) {
+            showInterstitial();
+        }
+        navigation.goBack();
+    };
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -242,7 +280,7 @@ export default function MemoryMatchGame({ navigation }: any) {
 
                     <TouchableOpacity 
                         style={[styles.playAgainButton, { backgroundColor: perf.color, shadowColor: perf.color }]} 
-                        onPress={restartGame} 
+                        onPress={restartGameWithAd} 
                         activeOpacity={0.8}
                     >
                         <Text style={styles.playAgainButtonText}>Play Again</Text>
@@ -312,8 +350,8 @@ export default function MemoryMatchGame({ navigation }: any) {
             <GameMenuModal 
                 visible={menuVisible} 
                 onClose={() => setMenuVisible(false)} 
-                onSaveAndQuit={() => navigation.goBack()} 
-                onQuit={() => navigation.goBack()} 
+                onSaveAndQuit={quitWithAd} 
+                onQuit={quitWithAd} 
             />
         <AdBanner />
         </SafeAreaView>
